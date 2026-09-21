@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Brand, Platform, ScrapeRun } from "@/lib/types";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { SyncButton } from "@/components/SyncButton";
+import { LogoUploader } from "@/components/LogoUploader";
 
 const PLATFORM_FIELDS: { platform: Platform; fields: { key: keyof Brand; label: string; placeholder?: string }[] }[] = [
   { platform: "meta", fields: [{ key: "meta_page_id", label: "Facebook Page ID", placeholder: "e.g. 119630781428450" }] },
@@ -68,6 +69,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
     setEditing({
       name: brand.name,
       category: brand.category ?? "",
+      logo_url: brand.logo_url ?? "",
       meta_page_id: brand.meta_page_id ?? "",
       google_advertiser_id: brand.google_advertiser_id ?? "",
       google_domain: brand.google_domain ?? "",
@@ -103,14 +105,24 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
       </Link>
 
       <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold">{brand.name}</h1>
-            {brand.is_own && (
-              <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
-            )}
+        <div className="flex items-center gap-3">
+          {brand.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brand.logo_url} alt="" className="h-12 w-12 flex-shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-neutral-200 text-lg font-medium text-neutral-500">
+              {brand.name.slice(0, 1)}
+            </span>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold">{brand.name}</h1>
+              {brand.is_own && (
+                <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+              )}
+            </div>
+            {brand.category && <p className="text-sm text-neutral-500">{brand.category}</p>}
           </div>
-          {brand.category && <p className="text-sm text-neutral-500">{brand.category}</p>}
         </div>
         <Link
           href={`/ads?brand_id=${brand.id}`}
@@ -157,6 +169,14 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
                 value={editing.category}
                 onChange={(e) => setEditing((s) => ({ ...s, category: e.target.value }))}
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">Logo</label>
+              <LogoUploader
+                value={editing.logo_url}
+                onChange={(url) => setEditing((s) => ({ ...s, logo_url: url }))}
+                brandId={id}
               />
             </div>
             {PLATFORM_FIELDS.map(({ platform, fields }) => (

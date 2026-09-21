@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Brand } from "@/lib/types";
+import { LogoUploader } from "./LogoUploader";
 
 export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) {
   const [open, setOpen] = useState(false);
@@ -11,6 +12,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
     name: "",
     is_own: false,
     category: "",
+    logo_url: "",
     meta_page_id: "",
     google_advertiser_id: "",
     google_domain: "",
@@ -39,6 +41,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
         name: "",
         is_own: false,
         category: "",
+        logo_url: "",
         meta_page_id: "",
         google_advertiser_id: "",
         google_domain: "",
@@ -91,6 +94,10 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
             placeholder="e.g. Skincare, SaaS…"
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
+        </div>
+        <div className="col-span-2">
+          <label className="mb-1 block text-xs font-medium text-neutral-600">Logo</label>
+          <LogoUploader value={form.logo_url} onChange={(url) => update("logo_url", url)} />
         </div>
       </div>
 

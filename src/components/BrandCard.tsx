@@ -23,16 +23,26 @@ export function BrandCard({ brand, onDelete }: { brand: Brand; onDelete: (id: st
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5">
       <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Link href={`/brands/${brand.id}`} className="font-semibold text-neutral-900 hover:underline">
-              {brand.name}
-            </Link>
-            {brand.is_own && (
-              <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
-            )}
+        <div className="flex items-center gap-3">
+          {brand.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brand.logo_url} alt="" className="h-9 w-9 flex-shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-medium text-neutral-500">
+              {brand.name.slice(0, 1)}
+            </span>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <Link href={`/brands/${brand.id}`} className="font-semibold text-neutral-900 hover:underline">
+                {brand.name}
+              </Link>
+              {brand.is_own && (
+                <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+              )}
+            </div>
+            {brand.category && <p className="text-xs text-neutral-500">{brand.category}</p>}
           </div>
-          {brand.category && <p className="text-xs text-neutral-500">{brand.category}</p>}
         </div>
         <div className="flex items-center gap-3">
           <Link href={`/ads?brand_id=${brand.id}`} className="text-xs font-medium text-neutral-600 underline underline-offset-2">
