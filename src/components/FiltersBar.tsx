@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import clsx from "clsx";
-import { AD_FORMAT_OPTIONS, type Brand, type Platform, type ThemeRule } from "@/lib/types";
+import { AD_FORMAT_OPTIONS, UNTAGGED_THEME, type Brand, type Platform, type ThemeRule } from "@/lib/types";
 
 export interface AdFilters {
   q: string;
@@ -18,7 +18,6 @@ const PLATFORM_FILTERS: { value: Platform | ""; label: string }[] = [
   { value: "", label: "All platforms" },
   { value: "meta", label: "Meta" },
   { value: "google", label: "Google" },
-  { value: "tiktok", label: "TikTok" },
   { value: "linkedin", label: "LinkedIn" },
 ];
 
@@ -85,6 +84,7 @@ export function FiltersBar({
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
         >
           <option value="">All themes</option>
+          <option value={UNTAGGED_THEME}>No theme</option>
           {themes.map((t) => (
             <option key={t.id} value={t.name}>
               {t.name}

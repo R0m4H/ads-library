@@ -7,7 +7,6 @@ import { PlatformBadge } from "./PlatformBadge";
 const PLATFORM_KEYS: { platform: Platform; check: (b: Brand) => boolean }[] = [
   { platform: "meta", check: (b) => !!b.meta_page_id || !!b.meta_page_url },
   { platform: "google", check: (b) => !!b.google_advertiser_id },
-  { platform: "tiktok", check: (b) => !!b.tiktok_handle },
   { platform: "linkedin", check: (b) => !!b.linkedin_company_url },
 ];
 

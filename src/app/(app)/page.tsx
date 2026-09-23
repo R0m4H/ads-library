@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const ownActiveAds = (activeAds ?? []).filter((a) => ownBrandIds.has(a.brand_id)).length;
   const competitorActiveAds = (activeAds ?? []).length - ownActiveAds;
 
-  const byPlatform: Record<Platform, number> = { meta: 0, google: 0, tiktok: 0, linkedin: 0 };
+  const byPlatform: Record<Platform, number> = { meta: 0, google: 0, linkedin: 0 };
   for (const ad of activeAds ?? []) {
     const p = ad.platform as Platform;
     if (p in byPlatform) byPlatform[p] += 1;

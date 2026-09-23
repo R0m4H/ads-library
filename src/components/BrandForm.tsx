@@ -16,7 +16,6 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
     meta_page_id: "",
     google_advertiser_id: "",
     google_domain: "",
-    tiktok_handle: "",
     linkedin_company_url: "",
   });
 
@@ -45,7 +44,6 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
         meta_page_id: "",
         google_advertiser_id: "",
         google_domain: "",
-        tiktok_handle: "",
         linkedin_company_url: "",
       });
       setOpen(false);
@@ -118,15 +116,6 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
             value={form.meta_page_id}
             onChange={(e) => update("meta_page_id", e.target.value)}
             placeholder="Facebook Page numeric ID"
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-600">TikTok handle</label>
-          <input
-            value={form.tiktok_handle}
-            onChange={(e) => update("tiktok_handle", e.target.value)}
-            placeholder="@brand"
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </div>

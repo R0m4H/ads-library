@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { UNTAGGED_THEME } from "@/lib/types";
 
 export async function GET(req: Request) {
   const supabase = await createClient();
@@ -23,7 +24,8 @@ export async function GET(req: Request) {
 
   if (platform) query = query.eq("platform", platform);
   if (brandId) query = query.eq("brand_id", brandId);
-  if (theme) query = query.contains("theme_tags", [theme]);
+  if (theme === UNTAGGED_THEME) query = query.eq("theme_tags", "{}");
+  else if (theme) query = query.contains("theme_tags", [theme]);
   if (adFormat) query = query.eq("ad_format", adFormat);
   if (activeOnly === "true") query = query.eq("is_active", true);
   if (q) query = query.textSearch("search_vector", q, { type: "websearch" });

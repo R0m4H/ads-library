@@ -7,14 +7,13 @@ import type { Platform } from "@/lib/types";
 
 const bodySchema = z.object({
   brand_id: z.string().uuid(),
-  platform: z.enum(["meta", "google", "tiktok", "linkedin"]),
+  platform: z.enum(["meta", "google", "linkedin"]),
   limit: z.number().int().min(1).max(2000).default(200),
 });
 
 const ACTOR_ENV: Record<Platform, string> = {
   meta: "APIFY_ACTOR_META",
   google: "APIFY_ACTOR_GOOGLE",
-  tiktok: "APIFY_ACTOR_TIKTOK",
   linkedin: "APIFY_ACTOR_LINKEDIN",
 };
 

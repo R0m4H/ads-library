@@ -59,6 +59,15 @@ export async function getRunStatus(runId: string): Promise<ApifyRunStatus> {
   };
 }
 
+export async function abortActorRun(runId: string): Promise<void> {
+  const res = await fetch(`${APIFY_API_BASE}/actor-runs/${runId}/abort?token=${token()}`, { method: "POST" });
+  // Not OK if the run already finished on Apify's side — fine, nothing to abort.
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text();
+    throw new Error(`Apify run abort failed (${res.status}): ${text}`);
+  }
+}
+
 export async function getDatasetItems<T = Record<string, unknown>>(datasetId: string): Promise<T[]> {
   const res = await fetch(
     `${APIFY_API_BASE}/datasets/${datasetId}/items?token=${token()}&clean=true&format=json`

@@ -86,8 +86,6 @@ function googleLibraryUrl(brand: Brand): string | null {
  *   meta:     curious_coder/facebook-ads-library-scraper — { urls: [{url}], scrapeAdDetails, limitPerSource }
  *             (the official apify/facebook-ads-scraper instead expects `startUrls`)
  *   google:   silva95gustavo/google-ads-scraper — { startUrls: [{url}], resultsLimit, skipDetails }
- *   tiktok:   coregent/tiktok-ads-library-creative-center-scraper (cheap) or
- *             brilliant_gum/tiktok-ads-library-scraper (more used, pricier)
  *   linkedin: memo23/linkedin-ads-scraper
  *
  * `limit` is the user-facing "max ads to fetch" control (defaults to 200)
@@ -118,12 +116,6 @@ export function buildActorInput(platform: Platform, brand: Brand, limit = 200): 
         skipDetails: false,
       };
     }
-    case "tiktok":
-      return {
-        advertisers: brand.tiktok_handle ? [brand.tiktok_handle] : undefined,
-        searchTerms: brand.tiktok_handle ? undefined : [brand.name],
-        maxItems: limit,
-      };
     case "linkedin": {
       const isUrl = brand.linkedin_company_url?.startsWith("http");
       return {
@@ -291,37 +283,6 @@ function normalizeGoogle(item: Record<string, unknown>): NormalizedAd | null {
   };
 }
 
-function normalizeTikTok(item: Record<string, unknown>): NormalizedAd | null {
-  const externalId = str(item.adId ?? item.ad_id ?? item.id);
-  if (!externalId) return null;
-
-  const media: AdMedia[] = [];
-  const videoUrl = str(item.videoUrl ?? item.video_url);
-  if (videoUrl) media.push({ type: "video", url: videoUrl, thumbnail_url: str(item.thumbnailUrl) ?? undefined });
-  const imageUrls = item.imageUrls;
-  if (Array.isArray(imageUrls)) {
-    for (const url of imageUrls) if (typeof url === "string") media.push({ type: "image", url });
-  }
-
-  const status = str(item.adStatus ?? item.ad_status)?.toLowerCase();
-
-  return {
-    external_id: externalId,
-    ad_format: media.some((m) => m.type === "video") ? "video" : "image",
-    headline: null,
-    body: str(item.adText ?? item.caption),
-    cta: str(item.ctaType ?? item.cta_type),
-    media,
-    landing_url: str(item.landingPageUrl ?? item.landing_page_url),
-    source_url: null,
-    spend_estimate: null, // TikTok's public library doesn't expose spend.
-    impressions_estimate: str(item.uniqueUsersSeen ? `~${item.uniqueUsersSeen} unique viewers` : null),
-    first_seen_at: toIso(item.firstShownDate ?? item.startDate),
-    is_active: status ? status === "active" : true,
-    raw: item,
-  };
-}
-
 function normalizeLinkedIn(item: Record<string, unknown>): NormalizedAd | null {
   const externalId = str(item.adId ?? item.ad_id ?? item.id);
   if (!externalId) return null;
@@ -366,8 +327,6 @@ export function normalizeItem(platform: Platform, item: Record<string, unknown>)
       return normalizeMeta(item);
     case "google":
       return normalizeGoogle(item);
-    case "tiktok":
-      return normalizeTikTok(item);
     case "linkedin":
       return normalizeLinkedIn(item);
   }

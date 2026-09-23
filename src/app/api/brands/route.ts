@@ -12,7 +12,6 @@ const brandSchema = z.object({
   meta_page_url: z.string().optional().nullable(),
   google_advertiser_id: z.string().optional().nullable(),
   google_domain: z.string().optional().nullable(),
-  tiktok_handle: z.string().optional().nullable(),
   linkedin_company_url: z.string().optional().nullable(),
 });
 

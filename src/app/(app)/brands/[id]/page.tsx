@@ -17,7 +17,6 @@ const PLATFORM_FIELDS: { platform: Platform; fields: { key: keyof Brand; label: 
       { key: "google_domain", label: "Domain (reference only, not used for sync)", placeholder: "brand.com" },
     ],
   },
-  { platform: "tiktok", fields: [{ key: "tiktok_handle", label: "TikTok handle", placeholder: "@brand" }] },
   {
     platform: "linkedin",
     fields: [{ key: "linkedin_company_url", label: "Company name or Ad Library URL" }],
@@ -30,8 +29,6 @@ function isPlatformConfigured(brand: Brand, platform: Platform): boolean {
       return !!(brand.meta_page_id || brand.meta_page_url);
     case "google":
       return !!brand.google_advertiser_id; // this actor needs the advertiser ID; domain alone won't work
-    case "tiktok":
-      return !!brand.tiktok_handle;
     case "linkedin":
       return !!brand.linkedin_company_url;
   }
@@ -70,6 +67,12 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  async function cancelRun(runId: string) {
+    resuming.current.delete(runId); // stop the resume-on-load loop from racing this
+    await fetch(`/api/sync/${runId}`, { method: "DELETE" });
+    load();
+  }
+
   async function resumeStuckRun(runId: string) {
     for (let i = 0; i < 200; i++) {
       await new Promise((r) => setTimeout(r, 3000));
@@ -104,7 +107,6 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
       meta_page_id: brand.meta_page_id ?? "",
       google_advertiser_id: brand.google_advertiser_id ?? "",
       google_domain: brand.google_domain ?? "",
-      tiktok_handle: brand.tiktok_handle ?? "",
       linkedin_company_url: brand.linkedin_company_url ?? "",
     });
   }
@@ -240,7 +242,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         ) : (
           <div className="space-y-3">
-            {(["meta", "google", "tiktok", "linkedin"] as Platform[]).map((platform) => {
+            {(["meta", "google", "linkedin"] as Platform[]).map((platform) => {
               const configured = isPlatformConfigured(brand, platform);
               return (
                 <div key={platform} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-neutral-50 p-3">
@@ -275,20 +277,30 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
                   <PlatformBadge platform={run.platform} />
                   {new Date(run.started_at).toLocaleString()}
                 </span>
-                <span
-                  className={
-                    run.status === "succeeded"
-                      ? "text-green-600"
+                <span className="flex items-center gap-2">
+                  <span
+                    className={
+                      run.status === "succeeded"
+                        ? "text-green-600"
+                        : run.status === "failed"
+                          ? "text-red-600"
+                          : "text-neutral-400"
+                    }
+                  >
+                    {run.status === "succeeded"
+                      ? `${run.ads_found ?? 0} ads (${run.ads_active ?? 0} active)`
                       : run.status === "failed"
-                        ? "text-red-600"
-                        : "text-neutral-400"
-                  }
-                >
-                  {run.status === "succeeded"
-                    ? `${run.ads_found ?? 0} ads (${run.ads_active ?? 0} active)`
-                    : run.status === "failed"
-                      ? (run.error ?? "Failed")
-                      : "Running…"}
+                        ? (run.error ?? "Failed")
+                        : "Running…"}
+                  </span>
+                  {run.status === "running" && (
+                    <button
+                      onClick={() => cancelRun(run.id)}
+                      className="rounded-md border border-red-300 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      Stop
+                    </button>
+                  )}
                 </span>
               </li>
             ))}

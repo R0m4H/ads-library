@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getDatasetItems, getRunStatus } from "@/lib/apify/client";
+import { abortActorRun, getDatasetItems, getRunStatus } from "@/lib/apify/client";
 import { normalizeItem } from "@/lib/apify/normalize";
 import { classifyAd } from "@/lib/classify";
 import type { Platform } from "@/lib/types";
@@ -121,4 +121,32 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
     .single();
 
   return NextResponse.json({ run: finished });
+}
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ runId: string }> }) {
+  const { runId } = await params;
+  const supabase = await createClient();
+
+  const { data: run, error } = await supabase.from("scrape_runs").select("*").eq("id", runId).single();
+  if (error || !run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
+  if (run.status !== "running") return NextResponse.json({ run });
+
+  if (run.apify_run_id) {
+    try {
+      await abortActorRun(run.apify_run_id);
+    } catch {
+      // Best effort — still mark it cancelled locally even if Apify's abort
+      // call fails (e.g. the run already finished there in the meantime).
+    }
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("scrape_runs")
+    .update({ status: "failed", error: "Cancelled by user", finished_at: new Date().toISOString() })
+    .eq("id", runId)
+    .select()
+    .single();
+  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+  return NextResponse.json({ run: updated });
 }

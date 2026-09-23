@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/ads", label: "Ad Library" },
   { href: "/brands", label: "Brands" },
   { href: "/themes", label: "Themes" },
+  { href: "/analysis", label: "Analysis" },
 ];
 
 export function Nav({ email }: { email: string | null }) {

@@ -19,6 +19,23 @@ export function SyncButton({
   const [status, setStatus] = useState<"idle" | "running" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [limit, setLimit] = useState(200);
+  const [runId, setRunId] = useState<string | null>(null);
+
+  // Returns true if the run reached a terminal state and the UI was updated.
+  function applyTerminal(run: ScrapeRun): boolean {
+    if (run.status === "succeeded") {
+      setStatus("idle");
+      setMessage(`Found ${run.ads_found ?? 0} ads`);
+      onDone?.(run);
+      return true;
+    }
+    if (run.status === "failed") {
+      setStatus("error");
+      setMessage(run.error ?? "Sync failed");
+      return true;
+    }
+    return false;
+  }
 
   async function sync() {
     setStatus("running");
@@ -32,39 +49,41 @@ export function SyncButton({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.toString() ?? "Failed to start sync");
 
-      const runId = json.run_id as string;
-      await poll(runId);
+      const id = json.run_id as string;
+      setRunId(id);
+      await poll(id);
     } catch (e) {
       setStatus("error");
       setMessage(e instanceof Error ? e.message : "Sync failed");
     }
   }
 
-  async function poll(runId: string) {
+  async function poll(id: string) {
     // Apify runs can take several minutes on large batches; 200 * 3s = 10 min.
     // If it's still running after that, we stop polling from this tab, but the
     // brand page resumes polling any "running" run on load, so it isn't lost.
     for (let i = 0; i < 200; i++) {
       await new Promise((r) => setTimeout(r, 3000));
-      const res = await fetch(`/api/sync/${runId}`);
+      const res = await fetch(`/api/sync/${id}`);
       const json = await res.json();
       const run: ScrapeRun | undefined = json.run;
       if (!run) continue;
-
-      if (run.status === "succeeded") {
-        setStatus("idle");
-        setMessage(`Found ${run.ads_found ?? 0} ads`);
-        onDone?.(run);
-        return;
-      }
-      if (run.status === "failed") {
-        setStatus("error");
-        setMessage(run.error ?? "Sync failed");
+      if (applyTerminal(run)) {
+        setRunId(null);
         return;
       }
     }
     setStatus("idle");
     setMessage("Still running in the background — reload this page in a bit to check.");
+  }
+
+  async function stop() {
+    if (!runId) return;
+    setMessage("Stopping…");
+    const res = await fetch(`/api/sync/${runId}`, { method: "DELETE" });
+    const json = await res.json();
+    if (json.run) applyTerminal(json.run);
+    setRunId(null);
   }
 
   return (
@@ -113,6 +132,14 @@ export function SyncButton({
         <RefreshCw className={clsx("h-3.5 w-3.5", status === "running" && "animate-spin")} />
         {status === "running" ? "Syncing…" : "Sync"}
       </button>
+      {status === "running" && runId && (
+        <button
+          onClick={stop}
+          className="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+        >
+          Stop
+        </button>
+      )}
       {message && <span className={clsx("text-xs", status === "error" ? "text-red-600" : "text-neutral-500")}>{message}</span>}
     </div>
   );

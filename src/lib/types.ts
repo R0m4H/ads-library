@@ -1,4 +1,4 @@
-export type Platform = "meta" | "google" | "tiktok" | "linkedin";
+export type Platform = "meta" | "google" | "linkedin";
 
 export interface Brand {
   id: string;
@@ -11,7 +11,6 @@ export interface Brand {
   meta_page_url: string | null;
   google_advertiser_id: string | null;
   google_domain: string | null;
-  tiktok_handle: string | null;
   linkedin_company_url: string | null;
   created_at: string;
   updated_at: string;
@@ -87,9 +86,12 @@ export interface ScrapeRun {
 export const PLATFORM_LABELS: Record<Platform, string> = {
   meta: "Meta (Facebook/Instagram)",
   google: "Google",
-  tiktok: "TikTok",
   linkedin: "LinkedIn",
 };
+
+// Sentinel value for the theme filter meaning "ads with no theme tags at
+// all" — distinct from any real theme name a user could define.
+export const UNTAGGED_THEME = "__untagged__";
 
 export const AD_FORMAT_OPTIONS = [
   { value: "image", label: "Image" },
