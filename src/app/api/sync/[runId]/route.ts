@@ -5,6 +5,10 @@ import { normalizeItem } from "@/lib/apify/normalize";
 import { classifyAd } from "@/lib/classify";
 import type { Platform } from "@/lib/types";
 
+// Large batches (Full preset = 1000 ads) need real headroom for the Apify
+// dataset fetch + bulk upserts below.
+export const maxDuration = 60;
+
 export async function GET(_req: Request, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
   const supabase = await createClient();
@@ -41,21 +45,33 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
   const rawItems = await getDatasetItems(apifyStatus.datasetId);
   const normalized = rawItems.map((item) => normalizeItem(platform, item)).filter((x) => x !== null);
 
+  const { data: themeRules } = await supabase.from("theme_rules").select("name, keywords, priority, excludes");
+
+  // Fetch existing ads for this brand+platform once, instead of one query per
+  // ad — doing a SELECT + upsert per ad serially was slow enough on large
+  // batches (1000 ads = ~2000 sequential round-trips) to blow past the
+  // function timeout and leave the run stuck at "running".
+  const existingByExternalId = new Map<string, { theme_tags: string[] }>();
+  const fetchPageSize = 1000;
+  for (let page = 0; ; page++) {
+    const { data } = await supabase
+      .from("ads")
+      .select("external_id, theme_tags")
+      .eq("brand_id", run.brand_id)
+      .eq("platform", platform)
+      .range(page * fetchPageSize, page * fetchPageSize + fetchPageSize - 1);
+    for (const row of data ?? []) existingByExternalId.set(row.external_id, row);
+    if (!data || data.length < fetchPageSize) break;
+  }
+
   const now = new Date().toISOString();
   let activeCount = 0;
 
-  for (const ad of normalized) {
-    const themeTags = classifyAd(ad.headline, ad.body, ad.cta);
-
-    const { data: existing } = await supabase
-      .from("ads")
-      .select("id, theme_tags")
-      .eq("brand_id", run.brand_id)
-      .eq("platform", platform)
-      .eq("external_id", ad.external_id)
-      .maybeSingle();
-
-    const payload = {
+  const payloads = normalized.map((ad) => {
+    if (ad.is_active) activeCount += 1;
+    const existing = existingByExternalId.get(ad.external_id);
+    const themeTags = classifyAd(ad.headline, ad.body, ad.cta, themeRules ?? []);
+    return {
       brand_id: run.brand_id,
       platform,
       external_id: ad.external_id,
@@ -75,9 +91,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
       // Keep manually-adjusted tags if the ad already existed; otherwise auto-tag.
       theme_tags: existing?.theme_tags?.length ? existing.theme_tags : themeTags,
     };
+  });
 
-    await supabase.from("ads").upsert(payload, { onConflict: "brand_id,platform,external_id" });
-    if (ad.is_active) activeCount += 1;
+  const upsertChunkSize = 500;
+  for (let i = 0; i < payloads.length; i += upsertChunkSize) {
+    await supabase.from("ads").upsert(payloads.slice(i, i + upsertChunkSize), { onConflict: "brand_id,platform,external_id" });
   }
 
   // Anything for this brand+platform not seen in this run is no longer active.

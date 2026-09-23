@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/ads", label: "Ad Library" },
   { href: "/brands", label: "Brands" },
+  { href: "/themes", label: "Themes" },
 ];
 
 export function Nav({ email }: { email: string | null }) {

@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import clsx from "clsx";
-import type { Platform, ScrapeRun } from "@/lib/types";
+import type { Platform, ScrapeRun, SyncPreset } from "@/lib/types";
 
 export function SyncButton({
   brandId,
   platform,
+  presets,
   onDone,
 }: {
   brandId: string;
   platform: Platform;
+  presets: SyncPreset[];
   onDone?: (run: ScrapeRun) => void;
 }) {
   const [status, setStatus] = useState<"idle" | "running" | "error">("idle");
@@ -39,7 +41,10 @@ export function SyncButton({
   }
 
   async function poll(runId: string) {
-    for (let i = 0; i < 60; i++) {
+    // Apify runs can take several minutes on large batches; 200 * 3s = 10 min.
+    // If it's still running after that, we stop polling from this tab, but the
+    // brand page resumes polling any "running" run on load, so it isn't lost.
+    for (let i = 0; i < 200; i++) {
       await new Promise((r) => setTimeout(r, 3000));
       const res = await fetch(`/api/sync/${runId}`);
       const json = await res.json();
@@ -58,12 +63,31 @@ export function SyncButton({
         return;
       }
     }
-    setStatus("error");
-    setMessage("Sync is taking longer than expected — check back shortly");
+    setStatus("idle");
+    setMessage("Still running in the background — reload this page in a bit to check.");
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {presets.length > 0 && (
+        <div className="flex gap-1">
+          {presets.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={status === "running"}
+              onClick={() => setLimit(p.value)}
+              title={`${p.label} — ${p.value} ads`}
+              className={clsx(
+                "rounded-full px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50",
+                limit === p.value ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
       <label className="flex items-center gap-1 text-xs text-neutral-500" title="Max ads to fetch for this sync">
         Max
         <input

@@ -1,11 +1,12 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { Brand, Platform, ScrapeRun } from "@/lib/types";
+import type { Brand, Platform, ScrapeRun, SyncPreset } from "@/lib/types";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { SyncButton } from "@/components/SyncButton";
 import { LogoUploader } from "@/components/LogoUploader";
+import { SyncPresetsEditor } from "@/components/SyncPresetsEditor";
 
 const PLATFORM_FIELDS: { platform: Platform; fields: { key: keyof Brand; label: string; placeholder?: string }[] }[] = [
   { platform: "meta", fields: [{ key: "meta_page_id", label: "Facebook Page ID", placeholder: "e.g. 119630781428450" }] },
@@ -44,6 +45,9 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [adCounts, setAdCounts] = useState<{ total: number; active: number } | null>(null);
+  const [presets, setPresets] = useState<SyncPreset[]>([]);
+  const [editingPresets, setEditingPresets] = useState(false);
+  const resuming = useRef<Set<string>>(new Set());
 
   function load() {
     Promise.all([
@@ -51,10 +55,12 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
       fetch(`/api/brands/${id}/runs`).then((r) => r.json()),
       fetch(`/api/ads?brand_id=${id}&page=0`).then((r) => r.json()),
       fetch(`/api/ads?brand_id=${id}&active_only=true&page=0`).then((r) => r.json()),
-    ]).then(([brandJson, runsJson, allAds, activeAds]) => {
+      fetch(`/api/sync-presets`).then((r) => r.json()),
+    ]).then(([brandJson, runsJson, allAds, activeAds, presetsJson]) => {
       setBrand(brandJson.brand ?? null);
       setRuns(runsJson.runs ?? []);
       setAdCounts({ total: allAds.total ?? 0, active: activeAds.total ?? 0 });
+      setPresets(presetsJson.presets ?? []);
       setLoading(false);
     });
   }
@@ -63,6 +69,31 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  async function resumeStuckRun(runId: string) {
+    for (let i = 0; i < 200; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const res = await fetch(`/api/sync/${runId}`);
+      const json = await res.json();
+      if (json.run && json.run.status !== "running") break;
+    }
+    resuming.current.delete(runId);
+    load();
+  }
+
+  // Ad ingestion only happens while something is actively polling
+  // /api/sync/[runId]. If a tab closed or SyncButton's own polling window
+  // elapsed while Apify was still finishing, the run gets stuck at
+  // "running" and its ads never land — so reconcile any stuck runs here,
+  // on every visit to this page.
+  useEffect(() => {
+    const stuck = runs.filter((r) => r.status === "running" && !resuming.current.has(r.id));
+    for (const run of stuck) {
+      resuming.current.add(run.id);
+      resumeStuckRun(run.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs]);
 
   function startEditing() {
     if (!brand) return;
@@ -217,10 +248,17 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
                     <PlatformBadge platform={platform} />
                     {!configured && <span className="text-xs text-neutral-400">Not configured — click Edit above</span>}
                   </div>
-                  {configured && <SyncButton brandId={brand.id} platform={platform} onDone={load} />}
+                  {configured && <SyncButton brandId={brand.id} platform={platform} presets={presets} onDone={load} />}
                 </div>
               );
             })}
+            <button
+              onClick={() => setEditingPresets((v) => !v)}
+              className="text-xs font-medium text-neutral-500 underline underline-offset-2"
+            >
+              {editingPresets ? "Hide preset editor" : "Edit sync presets"}
+            </button>
+            {editingPresets && <SyncPresetsEditor presets={presets} onChange={setPresets} />}
           </div>
         )}
       </section>

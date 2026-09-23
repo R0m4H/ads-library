@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import clsx from "clsx";
-import { AD_FORMAT_OPTIONS, THEME_OPTIONS, type Brand, type Platform } from "@/lib/types";
+import { AD_FORMAT_OPTIONS, type Brand, type Platform, type ThemeRule } from "@/lib/types";
 
 export interface AdFilters {
   q: string;
@@ -26,10 +26,12 @@ export function FiltersBar({
   filters,
   onChange,
   brands,
+  themes,
 }: {
   filters: AdFilters;
   onChange: (f: AdFilters) => void;
   brands: Brand[];
+  themes: ThemeRule[];
 }) {
   function set<K extends keyof AdFilters>(key: K, value: AdFilters[K]) {
     onChange({ ...filters, [key]: value });
@@ -83,9 +85,9 @@ export function FiltersBar({
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
         >
           <option value="">All themes</option>
-          {THEME_OPTIONS.map((t) => (
-            <option key={t} value={t}>
-              {t}
+          {themes.map((t) => (
+            <option key={t.id} value={t.name}>
+              {t.name}
             </option>
           ))}
         </select>

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { AdWithBrand, Brand } from "@/lib/types";
+import type { AdWithBrand, Brand, ThemeRule } from "@/lib/types";
 import { AdCard } from "@/components/AdCard";
 import { FiltersBar, type AdFilters } from "@/components/FiltersBar";
 
@@ -17,6 +17,7 @@ export default function AdsPage() {
 function AdsPageInner() {
   const searchParams = useSearchParams();
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [themes, setThemes] = useState<ThemeRule[]>([]);
   const [ads, setAds] = useState<AdWithBrand[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -36,6 +37,9 @@ function AdsPageInner() {
     fetch("/api/brands")
       .then((r) => r.json())
       .then((json) => setBrands(json.brands ?? []));
+    fetch("/api/themes")
+      .then((r) => r.json())
+      .then((json) => setThemes(json.themes ?? []));
   }, []);
 
   const query = useMemo(() => {
@@ -101,7 +105,7 @@ function AdsPageInner() {
         </label>
       </div>
 
-      <FiltersBar filters={filters} onChange={handleFilterChange} brands={brands} />
+      <FiltersBar filters={filters} onChange={handleFilterChange} brands={brands} themes={themes} />
 
       {loading ? (
         <p className="text-sm text-neutral-400">Loading…</p>

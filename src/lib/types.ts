@@ -49,6 +49,25 @@ export interface AdWithBrand extends Ad {
   brand: Pick<Brand, "id" | "name" | "is_own" | "logo_url" | "category">;
 }
 
+export interface ThemeRule {
+  id: string;
+  name: string;
+  keywords: string[];
+  priority: number;
+  excludes: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SyncPreset {
+  id: string;
+  label: string;
+  value: number;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ScrapeStatus = "running" | "succeeded" | "failed";
 
 export interface ScrapeRun {
@@ -77,17 +96,4 @@ export const AD_FORMAT_OPTIONS = [
   { value: "video", label: "Video" },
   { value: "carousel", label: "Carousel" },
   { value: "text", label: "Text" },
-] as const;
-
-export const THEME_OPTIONS = [
-  "Discount / Sale",
-  "New Product Launch",
-  "Brand Awareness",
-  "Lead Gen / Signup",
-  "Retargeting / Social Proof",
-  "Seasonal / Holiday",
-  "Testimonial / UGC",
-  "Educational / How-to",
-  "Limited Time / Urgency",
-  "Free Trial / Demo",
 ] as const;

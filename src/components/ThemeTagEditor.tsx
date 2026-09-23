@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { THEME_OPTIONS } from "@/lib/types";
+import type { ThemeRule } from "@/lib/types";
 
 export function ThemeTagEditor({
   adId,
@@ -14,6 +14,14 @@ export function ThemeTagEditor({
   onChange: (tags: string[]) => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const [themes, setThemes] = useState<ThemeRule[]>([]);
+  const [customTag, setCustomTag] = useState("");
+
+  useEffect(() => {
+    fetch("/api/themes")
+      .then((r) => r.json())
+      .then((json) => setThemes(json.themes ?? []));
+  }, []);
 
   async function save(next: string[]) {
     setSaving(true);
@@ -35,7 +43,7 @@ export function ThemeTagEditor({
     save([...tags, tag]);
   }
 
-  const available = THEME_OPTIONS.filter((t) => !tags.includes(t));
+  const available = themes.map((t) => t.name).filter((name) => !tags.includes(name));
 
   return (
     <div className="space-y-2">
@@ -52,21 +60,39 @@ export function ThemeTagEditor({
           </span>
         ))}
       </div>
-      {available.length > 0 && (
-        <select
-          value=""
-          onChange={(e) => add(e.target.value)}
-          disabled={saving}
-          className="rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600"
+      <div className="flex flex-wrap items-center gap-2">
+        {available.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => add(e.target.value)}
+            disabled={saving}
+            className="rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600"
+          >
+            <option value="">+ Add theme…</option>
+            {available.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            add(customTag.trim());
+            setCustomTag("");
+          }}
+          className="flex items-center gap-1"
         >
-          <option value="">+ Add theme…</option>
-          {available.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      )}
+          <input
+            value={customTag}
+            onChange={(e) => setCustomTag(e.target.value)}
+            placeholder="Custom tag…"
+            disabled={saving}
+            className="w-28 rounded-md border border-neutral-300 px-2 py-1 text-xs"
+          />
+        </form>
+      </div>
     </div>
   );
 }
