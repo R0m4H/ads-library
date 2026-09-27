@@ -32,6 +32,11 @@ interface AnalysisResult {
   brands: BrandResult[];
 }
 
+interface Insight {
+  title: string;
+  body: string;
+}
+
 // Tailwind's JIT scanner needs literal class names, not string-interpolated
 // ones, so the grid column count is looked up rather than templated.
 const KPI_GRID_COLS: Record<number, string> = {
@@ -49,6 +54,9 @@ export default function AnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [platformTab, setPlatformTab] = useState<PlatformKey>("all");
+  const [insights, setInsights] = useState<Insight[] | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/brands")
@@ -76,7 +84,43 @@ export default function AnalysisPage() {
       setResult(json);
       setPlatformTab("all");
     }
+    setInsights(null);
+    setInsightsError(null);
     setLoading(false);
+  }
+
+  function selectPlatformTab(key: PlatformKey) {
+    setPlatformTab(key);
+    setInsights(null);
+    setInsightsError(null);
+  }
+
+  async function generateInsights() {
+    if (!result) return;
+    setInsightsLoading(true);
+    setInsightsError(null);
+    const payload = {
+      platformLabel: PLATFORM_TABS.find((t) => t.key === platformTab)?.label ?? platformTab,
+      activeOnly,
+      themes: result.themes,
+      brands: rows.map((r) => ({
+        name: r.brand?.name ?? "Unknown",
+        total: r.total,
+        active: r.active,
+        untagged: r.untagged,
+        themeCounts: r.themeCounts,
+        topHeadlines: r.headlines.slice(0, 15),
+      })),
+    };
+    const res = await fetch("/api/analysis/insights", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) setInsightsError(JSON.stringify(json.error));
+    else setInsights(json.insights ?? []);
+    setInsightsLoading(false);
   }
 
   const rows = result?.brands.map((b) => ({ brand: b.brand, ...b.platforms[platformTab] })) ?? [];
@@ -142,7 +186,7 @@ export default function AnalysisPage() {
             {PLATFORM_TABS.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setPlatformTab(tab.key)}
+                onClick={() => selectPlatformTab(tab.key)}
                 className={clsx(
                   "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                   platformTab === tab.key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
@@ -215,6 +259,35 @@ export default function AnalysisPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="rounded-xl border border-neutral-200 bg-white p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-neutral-700">AI Insights</h2>
+              <button
+                onClick={generateInsights}
+                disabled={insightsLoading}
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+              >
+                {insightsLoading ? "Generating…" : "Generate AI insights"}
+              </button>
+            </div>
+            {insightsError && <p className="text-sm text-red-600">{insightsError}</p>}
+            {insights && insights.length > 0 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {insights.map((ins, i) => (
+                  <div key={i} className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                    <p className="mb-1 text-sm font-semibold text-neutral-900">{ins.title}</p>
+                    <p className="text-xs leading-relaxed text-neutral-600">{ins.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!insights && !insightsError && !insightsLoading && (
+              <p className="text-sm text-neutral-400">
+                Uses Gemini to summarize the numbers above into strategic takeaways — nothing is sent until you click.
+              </p>
+            )}
           </div>
 
           <div>
