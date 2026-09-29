@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import type { Brand } from "@/lib/types";
 import { ThemeComparisonChart, BRAND_COLORS } from "@/components/ThemeComparisonChart";
+import { RadarComparisonChart } from "@/components/RadarComparisonChart";
 
 type PlatformKey = "all" | "meta" | "google" | "linkedin";
 
@@ -32,10 +33,38 @@ interface AnalysisResult {
   brands: BrandResult[];
 }
 
-interface Insight {
+interface Finding {
+  brand: string | null;
+  tag: "advantage" | "contested" | "white-space" | "risk";
   title: string;
   body: string;
 }
+
+interface GapRow {
+  gap: string;
+  evidence: string;
+  move: string;
+  priority: "high" | "med" | "low";
+}
+
+interface AIAnalysis {
+  findings: Finding[];
+  gaps: GapRow[];
+  checklist: string[];
+}
+
+const TAG_STYLES: Record<Finding["tag"], string> = {
+  advantage: "bg-green-50 text-green-700",
+  contested: "bg-amber-50 text-amber-700",
+  "white-space": "bg-neutral-100 text-neutral-600",
+  risk: "bg-red-50 text-red-700",
+};
+
+const PRIORITY_STYLES: Record<GapRow["priority"], string> = {
+  high: "bg-red-50 text-red-700",
+  med: "bg-amber-50 text-amber-700",
+  low: "bg-green-50 text-green-700",
+};
 
 // Tailwind's JIT scanner needs literal class names, not string-interpolated
 // ones, so the grid column count is looked up rather than templated.
@@ -54,7 +83,7 @@ export default function AnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [platformTab, setPlatformTab] = useState<PlatformKey>("all");
-  const [insights, setInsights] = useState<Insight[] | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
 
@@ -84,14 +113,14 @@ export default function AnalysisPage() {
       setResult(json);
       setPlatformTab("all");
     }
-    setInsights(null);
+    setAiAnalysis(null);
     setInsightsError(null);
     setLoading(false);
   }
 
   function selectPlatformTab(key: PlatformKey) {
     setPlatformTab(key);
-    setInsights(null);
+    setAiAnalysis(null);
     setInsightsError(null);
   }
 
@@ -105,6 +134,7 @@ export default function AnalysisPage() {
       themes: result.themes,
       brands: rows.map((r) => ({
         name: r.brand?.name ?? "Unknown",
+        isOwn: r.brand?.is_own ?? false,
         total: r.total,
         active: r.active,
         untagged: r.untagged,
@@ -119,7 +149,7 @@ export default function AnalysisPage() {
     });
     const json = await res.json();
     if (!res.ok) setInsightsError(JSON.stringify(json.error));
-    else setInsights(json.insights ?? []);
+    else setAiAnalysis(json);
     setInsightsLoading(false);
   }
 
@@ -129,6 +159,17 @@ export default function AnalysisPage() {
     name: r.brand?.name ?? "Unknown",
     color: BRAND_COLORS[i % BRAND_COLORS.length],
     data: [...(result?.themes ?? []).map((t) => r.themeCounts[t] ?? 0), r.untagged],
+  }));
+
+  // Radar: each theme axis normalized 0-100 against the category leader
+  // among the selected brands, same convention as a typical share-of-voice
+  // competitive radar.
+  const radarThemes = result?.themes ?? [];
+  const maxByTheme = Object.fromEntries(radarThemes.map((t) => [t, Math.max(1, ...rows.map((r) => r.themeCounts[t] ?? 0))]));
+  const radarSeries = rows.map((r, i) => ({
+    name: r.brand?.name ?? "Unknown",
+    color: BRAND_COLORS[i % BRAND_COLORS.length],
+    data: radarThemes.map((t) => Math.round(((r.themeCounts[t] ?? 0) / maxByTheme[t]) * 100)),
   }));
 
   return (
@@ -234,6 +275,16 @@ export default function AnalysisPage() {
             )}
           </div>
 
+          <div className="rounded-xl border border-neutral-200 bg-white p-5">
+            <h2 className="mb-1 text-sm font-semibold text-neutral-700">Competitive radar</h2>
+            <p className="mb-4 text-xs text-neutral-400">Each theme axis normalized 0-100 against whichever brand leads it.</p>
+            {radarThemes.length < 3 ? (
+              <p className="text-sm text-neutral-400">Define at least 3 themes to get a useful radar comparison.</p>
+            ) : (
+              <RadarComparisonChart labels={radarThemes} series={radarSeries} />
+            )}
+          </div>
+
           <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
             <table className="w-full text-sm">
               <thead>
@@ -263,7 +314,7 @@ export default function AnalysisPage() {
 
           <div className="rounded-xl border border-neutral-200 bg-white p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-neutral-700">AI Insights</h2>
+              <h2 className="text-sm font-semibold text-neutral-700">Key strategic findings</h2>
               <button
                 onClick={generateInsights}
                 disabled={insightsLoading}
@@ -273,22 +324,71 @@ export default function AnalysisPage() {
               </button>
             </div>
             {insightsError && <p className="text-sm text-red-600">{insightsError}</p>}
-            {insights && insights.length > 0 && (
+            {aiAnalysis && aiAnalysis.findings.length > 0 && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {insights.map((ins, i) => (
+                {aiAnalysis.findings.map((f, i) => (
                   <div key={i} className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-                    <p className="mb-1 text-sm font-semibold text-neutral-900">{ins.title}</p>
-                    <p className="text-xs leading-relaxed text-neutral-600">{ins.body}</p>
+                    <span className={clsx("mb-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide", TAG_STYLES[f.tag])}>
+                      {f.brand ? `${f.brand} · ${f.tag}` : f.tag}
+                    </span>
+                    <p className="mb-1 text-sm font-semibold text-neutral-900">{f.title}</p>
+                    <p className="text-xs leading-relaxed text-neutral-600">{f.body}</p>
                   </div>
                 ))}
               </div>
             )}
-            {!insights && !insightsError && !insightsLoading && (
+            {!aiAnalysis && !insightsError && !insightsLoading && (
               <p className="text-sm text-neutral-400">
                 Uses Gemini to summarize the numbers above into strategic takeaways — nothing is sent until you click.
               </p>
             )}
           </div>
+
+          {aiAnalysis && aiAnalysis.gaps.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+              <h2 className="border-b border-neutral-200 px-5 py-3 text-sm font-semibold text-neutral-700">
+                Gap &amp; opportunity priority matrix
+              </h2>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
+                    <th className="px-4 py-2">Gap / opportunity</th>
+                    <th className="px-4 py-2">Evidence</th>
+                    <th className="px-4 py-2">Recommended move</th>
+                    <th className="px-4 py-2">Priority</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aiAnalysis.gaps.map((g, i) => (
+                    <tr key={i} className="border-b border-neutral-100 align-top last:border-0">
+                      <td className="px-4 py-2.5 font-medium text-neutral-800">{g.gap}</td>
+                      <td className="px-4 py-2.5 text-neutral-600">{g.evidence}</td>
+                      <td className="px-4 py-2.5 text-neutral-600">{g.move}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={clsx("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", PRIORITY_STYLES[g.priority])}>
+                          {g.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {aiAnalysis && aiAnalysis.checklist.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white p-5">
+              <h2 className="mb-3 text-sm font-semibold text-neutral-700">30-day action checklist</h2>
+              <ul className="space-y-2">
+                {aiAnalysis.checklist.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 border-b border-neutral-100 pb-2 text-sm last:border-0 last:pb-0">
+                    <span className="min-w-[20px] text-xs font-semibold text-neutral-400">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="text-neutral-700">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <h2 className="mb-3 text-sm font-semibold text-neutral-700">Headline breakdown — every distinct headline, by frequency</h2>

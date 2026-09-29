@@ -2,8 +2,10 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 // Flash-Lite is the model tier covered by Gemini's actual free API quota —
 // fine for occasional, user-triggered calls like this, not for anything
-// run automatically on every sync.
-const MODEL = "gemini-2.5-flash-lite";
+// run automatically on every sync. gemini-2.5-flash-lite was retired for
+// new API keys; confirmed against this project's live ListModels response
+// that gemini-3.5-flash-lite is the current replacement.
+const MODEL = "gemini-3.5-flash-lite";
 
 function apiKey(): string {
   const key = process.env.GEMINI_API_KEY;
