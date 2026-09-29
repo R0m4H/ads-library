@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   const theme = searchParams.get("theme");
   const adFormat = searchParams.get("ad_format");
   const activeOnly = searchParams.get("active_only");
+  const missingCopy = searchParams.get("missing_copy");
   const ownOnly = searchParams.get("own"); // "own" | "competitors" | null
   const q = searchParams.get("q");
   const page = Number(searchParams.get("page") ?? "0");
@@ -28,6 +29,7 @@ export async function GET(req: Request) {
   else if (theme) query = query.contains("theme_tags", [theme]);
   if (adFormat) query = query.eq("ad_format", adFormat);
   if (activeOnly === "true") query = query.eq("is_active", true);
+  if (missingCopy === "true") query = query.is("headline", null).is("body", null);
   if (q) query = query.textSearch("search_vector", q, { type: "websearch" });
 
   const { data, error, count } = await query;

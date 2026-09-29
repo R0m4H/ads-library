@@ -3,6 +3,8 @@
 import { Search } from "lucide-react";
 import clsx from "clsx";
 import { AD_FORMAT_OPTIONS, UNTAGGED_THEME, type Brand, type Platform, type ThemeRule } from "@/lib/types";
+import { canEdit } from "@/lib/role";
+import { useCurrentUser } from "./RoleProvider";
 
 export interface AdFilters {
   q: string;
@@ -11,6 +13,7 @@ export interface AdFilters {
   theme: string;
   ad_format: string;
   active_only: boolean;
+  missing_copy: boolean;
   own: "" | "own" | "competitors";
 }
 
@@ -32,6 +35,8 @@ export function FiltersBar({
   brands: Brand[];
   themes: ThemeRule[];
 }) {
+  const { role } = useCurrentUser();
+
   function set<K extends keyof AdFilters>(key: K, value: AdFilters[K]) {
     onChange({ ...filters, [key]: value });
   }
@@ -124,6 +129,18 @@ export function FiltersBar({
           />
           Active only
         </label>
+
+        {canEdit(role) && (
+          <label className="flex items-center gap-2 text-sm text-neutral-600" title="Ads with no headline and no body text">
+            <input
+              type="checkbox"
+              checked={filters.missing_copy}
+              onChange={(e) => set("missing_copy", e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300"
+            />
+            Missing copy
+          </label>
+        )}
       </div>
     </div>
   );

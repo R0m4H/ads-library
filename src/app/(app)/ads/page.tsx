@@ -30,6 +30,7 @@ function AdsPageInner() {
     theme: "",
     ad_format: "",
     active_only: false,
+    missing_copy: false,
     own: "",
   });
 
@@ -50,6 +51,7 @@ function AdsPageInner() {
     if (filters.theme) params.set("theme", filters.theme);
     if (filters.ad_format) params.set("ad_format", filters.ad_format);
     if (filters.active_only) params.set("active_only", "true");
+    if (filters.missing_copy) params.set("missing_copy", "true");
     if (filters.own) params.set("own", filters.own);
     params.set("page", String(page));
     params.set("page_size", String(pageSize));
