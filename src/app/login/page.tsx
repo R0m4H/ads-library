@@ -20,19 +20,27 @@ export default function LoginPage() {
     setLoading(true);
     const supabase = createClient();
 
-    if (mode === "sign-in") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-      else {
-        router.push("/");
-        router.refresh();
+    try {
+      if (mode === "sign-in") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) setError(error.message);
+        else {
+          router.push("/");
+          router.refresh();
+        }
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) setError(error.message);
+        else setMessage("Check your email to confirm your account, then sign in.");
       }
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setError(error.message);
-      else setMessage("Check your email to confirm your account, then sign in.");
+    } catch (e) {
+      // A thrown network-level error (e.g. "Failed to fetch") skips the
+      // normal { error } return path entirely — without this, the button
+      // gets stuck on "Please wait…" forever with no visible feedback.
+      setError(e instanceof Error ? e.message : "Could not reach the server. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

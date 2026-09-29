@@ -23,7 +23,13 @@ export function Nav({ email }: { email: string | null }) {
 
   async function signOut() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // A thrown network error here would otherwise leave the button
+      // silently doing nothing — still navigate to /login regardless,
+      // since the local session is cleared before the network revoke call.
+    }
     router.push("/login");
     router.refresh();
   }
