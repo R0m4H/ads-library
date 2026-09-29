@@ -181,26 +181,36 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
   }
 
   // Anything for this brand+platform not seen in this run is no longer
-  // active. Every ad actually seen just got last_seen_at stamped to `now`
-  // (via the upsert or touch step above), so "not seen this run" is simply
+  // active — but only if this run actually captured the brand's complete
+  // active-ad set. If the sync hit its limit (fewer results than requested
+  // never came back), there could be real active ads beyond the cap that
+  // this run simply never saw, and blindly marking everything else inactive
+  // would wrongly deactivate them — a systematic undercount that gets worse
+  // the more often a capped sync runs. Only known-complete runs (item count
+  // came in under the limit) get to declare anything "no longer active".
+  // Every ad actually seen just got last_seen_at stamped to `now` (via the
+  // upsert or touch step above), so "not seen this run" is simply
   // "last_seen_at is older than now" — no need to embed the (potentially
-  // ~1000-long) list of seen external_ids into the request, which was
-  // large enough on a Full sync to get rejected outright.
-  const { error: staleError } = await supabase
-    .from("ads")
-    .update({ is_active: false })
-    .eq("brand_id", run.brand_id)
-    .eq("platform", platform)
-    .eq("is_active", true) // skip rows already correctly inactive — nothing to write
-    .lt("last_seen_at", now);
-  if (staleError) {
-    const { data: failed } = await supabase
-      .from("scrape_runs")
-      .update({ status: "failed", error: `Failed to update stale ads: ${staleError.message}`, finished_at: new Date().toISOString() })
-      .eq("id", runId)
-      .select()
-      .single();
-    return NextResponse.json({ run: failed });
+  // ~1000-long) list of seen external_ids into the request, which was large
+  // enough on a Full sync to get rejected outright.
+  const captureIsComplete = run.ad_limit == null || normalized.length < run.ad_limit;
+  if (captureIsComplete) {
+    const { error: staleError } = await supabase
+      .from("ads")
+      .update({ is_active: false })
+      .eq("brand_id", run.brand_id)
+      .eq("platform", platform)
+      .eq("is_active", true) // skip rows already correctly inactive — nothing to write
+      .lt("last_seen_at", now);
+    if (staleError) {
+      const { data: failed } = await supabase
+        .from("scrape_runs")
+        .update({ status: "failed", error: `Failed to update stale ads: ${staleError.message}`, finished_at: new Date().toISOString() })
+        .eq("id", runId)
+        .select()
+        .single();
+      return NextResponse.json({ run: failed });
+    }
   }
 
   const { data: finished } = await supabase

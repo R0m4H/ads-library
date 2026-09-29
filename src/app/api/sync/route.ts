@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
   const { data: run, error: runErr } = await supabase
     .from("scrape_runs")
-    .insert({ brand_id, platform, status: "running", started_by: current.userId })
+    .insert({ brand_id, platform, status: "running", started_by: current.userId, ad_limit: limit })
     .select()
     .single();
   if (runErr || !run) return NextResponse.json({ error: runErr?.message ?? "Could not create run" }, { status: 500 });
