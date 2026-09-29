@@ -97,7 +97,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
   // If any write here is rejected (e.g. by a Row Level Security policy),
   // fail the run loudly instead of silently reporting "succeeded" with
   // counts that were never actually written.
-  const upsertChunkSize = 500;
+  const upsertChunkSize = 100;
   for (let i = 0; i < payloads.length; i += upsertChunkSize) {
     const { error: upsertError } = await supabase
       .from("ads")
