@@ -94,9 +94,23 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
     };
   });
 
+  // If any write here is rejected (e.g. by a Row Level Security policy),
+  // fail the run loudly instead of silently reporting "succeeded" with
+  // counts that were never actually written.
   const upsertChunkSize = 500;
   for (let i = 0; i < payloads.length; i += upsertChunkSize) {
-    await supabase.from("ads").upsert(payloads.slice(i, i + upsertChunkSize), { onConflict: "brand_id,platform,external_id" });
+    const { error: upsertError } = await supabase
+      .from("ads")
+      .upsert(payloads.slice(i, i + upsertChunkSize), { onConflict: "brand_id,platform,external_id" });
+    if (upsertError) {
+      const { data: failed } = await supabase
+        .from("scrape_runs")
+        .update({ status: "failed", error: `Failed to save ads: ${upsertError.message}`, finished_at: new Date().toISOString() })
+        .eq("id", runId)
+        .select()
+        .single();
+      return NextResponse.json({ run: failed });
+    }
   }
 
   // Anything for this brand+platform not seen in this run is no longer active.
@@ -107,7 +121,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
     .eq("brand_id", run.brand_id)
     .eq("platform", platform);
   staleQuery = seenIds.length > 0 ? staleQuery.not("external_id", "in", `(${seenIds.map((id) => `"${id}"`).join(",")})`) : staleQuery;
-  await staleQuery;
+  const { error: staleError } = await staleQuery;
+  if (staleError) {
+    const { data: failed } = await supabase
+      .from("scrape_runs")
+      .update({ status: "failed", error: `Failed to update stale ads: ${staleError.message}`, finished_at: new Date().toISOString() })
+      .eq("id", runId)
+      .select()
+      .single();
+    return NextResponse.json({ run: failed });
+  }
 
   const { data: finished } = await supabase
     .from("scrape_runs")
