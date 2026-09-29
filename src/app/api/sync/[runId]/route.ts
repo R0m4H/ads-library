@@ -51,28 +51,75 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
   // Fetch existing ads for this brand+platform once, instead of one query per
   // ad — doing a SELECT + upsert per ad serially was slow enough on large
   // batches (1000 ads = ~2000 sequential round-trips) to blow past the
-  // function timeout and leave the run stuck at "running".
-  const existingByExternalId = new Map<string, { theme_tags: string[] }>();
+  // function timeout and leave the run stuck at "running". Pull every field
+  // a full write would touch, so we can tell which ads actually changed.
+  interface ExistingAd {
+    id: string;
+    external_id: string;
+    theme_tags: string[];
+    ad_format: string | null;
+    headline: string | null;
+    body: string | null;
+    cta: string | null;
+    media: unknown;
+    landing_url: string | null;
+    source_url: string | null;
+    spend_estimate: string | null;
+    impressions_estimate: string | null;
+    is_active: boolean;
+  }
+  const existingByExternalId = new Map<string, ExistingAd>();
   const fetchPageSize = 1000;
   for (let page = 0; ; page++) {
     const { data } = await supabase
       .from("ads")
-      .select("external_id, theme_tags")
+      .select(
+        "id, external_id, theme_tags, ad_format, headline, body, cta, media, landing_url, source_url, spend_estimate, impressions_estimate, is_active"
+      )
       .eq("brand_id", run.brand_id)
       .eq("platform", platform)
       .range(page * fetchPageSize, page * fetchPageSize + fetchPageSize - 1);
-    for (const row of data ?? []) existingByExternalId.set(row.external_id, row);
+    for (const row of (data as ExistingAd[] | null) ?? []) existingByExternalId.set(row.external_id, row);
     if (!data || data.length < fetchPageSize) break;
   }
 
   const now = new Date().toISOString();
   let activeCount = 0;
 
-  const payloads = normalized.map((ad) => {
+  // Most ads in a repeat sync haven't changed at all since last time — an
+  // upsert still fully rewrites the row either way, which recomputes the
+  // generated search_vector column and its GIN index on every single ad,
+  // even unchanged ones. That was the real cost behind these timeouts, not
+  // just row count. So split into: unchanged ads get a cheap last_seen_at
+  // touch only (never rewrites headline/body/cta, so the index is left
+  // alone); new or actually-different ads get the full write.
+  const toUpsert: Record<string, unknown>[] = [];
+  const toTouch: string[] = [];
+
+  for (const ad of normalized) {
     if (ad.is_active) activeCount += 1;
     const existing = existingByExternalId.get(ad.external_id);
     const themeTags = classifyAd(ad.headline, ad.body, ad.cta, themeRules ?? []);
-    return {
+
+    const changed =
+      !existing ||
+      existing.ad_format !== ad.ad_format ||
+      existing.headline !== ad.headline ||
+      existing.body !== ad.body ||
+      existing.cta !== ad.cta ||
+      existing.landing_url !== ad.landing_url ||
+      existing.source_url !== ad.source_url ||
+      existing.spend_estimate !== ad.spend_estimate ||
+      existing.impressions_estimate !== ad.impressions_estimate ||
+      existing.is_active !== ad.is_active ||
+      JSON.stringify(existing.media) !== JSON.stringify(ad.media);
+
+    if (!changed) {
+      toTouch.push(existing.id);
+      continue;
+    }
+
+    toUpsert.push({
       brand_id: run.brand_id,
       platform,
       external_id: ad.external_id,
@@ -91,21 +138,41 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
       raw: ad.raw,
       // Keep manually-adjusted tags if the ad already existed; otherwise auto-tag.
       theme_tags: existing?.theme_tags?.length ? existing.theme_tags : themeTags,
-    };
-  });
+    });
+  }
 
   // If any write here is rejected (e.g. by a Row Level Security policy),
   // fail the run loudly instead of silently reporting "succeeded" with
   // counts that were never actually written.
   const upsertChunkSize = 100;
-  for (let i = 0; i < payloads.length; i += upsertChunkSize) {
+  for (let i = 0; i < toUpsert.length; i += upsertChunkSize) {
     const { error: upsertError } = await supabase
       .from("ads")
-      .upsert(payloads.slice(i, i + upsertChunkSize), { onConflict: "brand_id,platform,external_id" });
+      .upsert(toUpsert.slice(i, i + upsertChunkSize), { onConflict: "brand_id,platform,external_id" });
     if (upsertError) {
       const { data: failed } = await supabase
         .from("scrape_runs")
         .update({ status: "failed", error: `Failed to save ads: ${upsertError.message}`, finished_at: new Date().toISOString() })
+        .eq("id", runId)
+        .select()
+        .single();
+      return NextResponse.json({ run: failed });
+    }
+  }
+
+  // Unchanged ads: just bump last_seen_at. This never touches
+  // headline/body/cta, so it can't trigger search_vector/GIN maintenance —
+  // it's the cheap path that makes repeat syncs fast.
+  const touchChunkSize = 500;
+  for (let i = 0; i < toTouch.length; i += touchChunkSize) {
+    const { error: touchError } = await supabase
+      .from("ads")
+      .update({ last_seen_at: now })
+      .in("id", toTouch.slice(i, i + touchChunkSize));
+    if (touchError) {
+      const { data: failed } = await supabase
+        .from("scrape_runs")
+        .update({ status: "failed", error: `Failed to refresh ads: ${touchError.message}`, finished_at: new Date().toISOString() })
         .eq("id", runId)
         .select()
         .single();
