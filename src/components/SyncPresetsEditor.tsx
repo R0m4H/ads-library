@@ -104,7 +104,7 @@ export function SyncPresetsEditor({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+          className="rounded-md bg-bog px-2.5 py-1 text-xs font-medium text-white hover:bg-bog-dark disabled:opacity-50"
         >
           Add
         </button>

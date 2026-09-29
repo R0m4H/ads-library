@@ -75,7 +75,7 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
           )}
           <span className="truncate">{ad.brand.name}</span>
           {ad.brand.is_own && (
-            <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+            <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
           )}
         </div>
 

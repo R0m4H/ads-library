@@ -104,7 +104,7 @@ export default async function DashboardPage() {
       {(brandCount ?? 0) === 0 && (
         <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center">
           <p className="mb-3 text-sm text-neutral-500">Get started by adding your own brand and a few competitors.</p>
-          <Link href="/brands" className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+          <Link href="/brands" className="rounded-md bg-bog px-4 py-2 text-sm font-medium text-white hover:bg-bog-dark">
             Add your first brand
           </Link>
         </div>

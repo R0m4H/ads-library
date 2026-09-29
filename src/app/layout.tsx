@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ad Intel",
+  title: "Competitors Analysis",
   description: "Your ad library and competitor ad tracker",
 };
 

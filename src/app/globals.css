@@ -3,4 +3,12 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Bank of Georgia brand palette */
+  --color-bog: #ff5a00;
+  --color-bog-dark: #e64f00;
+  --color-bog-light: #ff8c4d;
+  --color-bog-pale: #fff1eb;
+  --color-navy: #0a1628;
+  --color-navy-light: #1a2e52;
 }

@@ -45,7 +45,7 @@ export function FiltersBar({
             onClick={() => set("platform", opt.value)}
             className={clsx(
               "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-              filters.platform === opt.value ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              filters.platform === opt.value ? "bg-bog text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
             )}
           >
             {opt.label}
@@ -60,7 +60,7 @@ export function FiltersBar({
             value={filters.q}
             onChange={(e) => set("q", e.target.value)}
             placeholder="Search headline, body, CTA…"
-            className="w-full rounded-md border border-neutral-300 py-2 pl-9 pr-3 text-sm focus:border-neutral-500 focus:outline-none"
+            className="w-full rounded-md border border-neutral-300 py-2 pl-9 pr-3 text-sm focus:border-bog focus:outline-none"
           />
         </div>
 

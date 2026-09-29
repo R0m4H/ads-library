@@ -275,7 +275,7 @@ export default function ThemesPage() {
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => acceptSuggestion(s)}
-                    className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                    className="rounded-md bg-bog px-3 py-1.5 text-xs font-medium text-white hover:bg-bog-dark"
                   >
                     Accept
                   </button>
@@ -356,7 +356,7 @@ export default function ThemesPage() {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+          className="rounded-md bg-bog px-4 py-2 text-sm font-medium text-white hover:bg-bog-dark disabled:opacity-50"
         >
           {saving ? "Adding…" : "Add theme"}
         </button>

@@ -37,7 +37,7 @@ export function BrandCard({ brand, onDelete }: { brand: Brand; onDelete: (id: st
                 {brand.name}
               </Link>
               {brand.is_own && (
-                <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+                <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
               )}
             </div>
             {brand.category && <p className="text-xs text-neutral-500">{brand.category}</p>}

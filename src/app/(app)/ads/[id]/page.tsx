@@ -109,7 +109,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
               {ad.brand.category && <p className="text-xs text-neutral-500">{ad.brand.category}</p>}
             </div>
             {ad.brand.is_own && (
-              <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+              <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
             )}
           </div>
 

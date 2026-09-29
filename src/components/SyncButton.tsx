@@ -99,7 +99,7 @@ export function SyncButton({
               title={`${p.label} — ${p.value} ads`}
               className={clsx(
                 "rounded-full px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50",
-                limit === p.value ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                limit === p.value ? "bg-bog text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
               )}
             >
               {p.label}

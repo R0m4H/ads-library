@@ -155,7 +155,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold">{brand.name}</h1>
               {brand.is_own && (
-                <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+                <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
               )}
             </div>
             {brand.category && <p className="text-sm text-neutral-500">{brand.category}</p>}
@@ -235,7 +235,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
               <button
                 onClick={save}
                 disabled={saving}
-                className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+                className="rounded-md bg-bog px-4 py-2 text-sm font-medium text-white hover:bg-bog-dark disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save"}
               </button>

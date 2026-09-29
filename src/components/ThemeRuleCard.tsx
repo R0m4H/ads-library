@@ -124,7 +124,7 @@ export function ThemeRuleCard({
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+            className="rounded-md bg-bog px-3 py-1.5 text-xs font-medium text-white hover:bg-bog-dark disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save"}
           </button>

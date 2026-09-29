@@ -189,7 +189,7 @@ export default function AnalysisPage() {
                 onClick={() => toggleBrand(b.id)}
                 className={clsx(
                   "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                  selected.includes(b.id) ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  selected.includes(b.id) ? "bg-bog text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                 )}
               >
                 {b.is_own ? "★ " : ""}
@@ -213,7 +213,7 @@ export default function AnalysisPage() {
           <button
             onClick={generate}
             disabled={selected.length === 0 || loading}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+            className="rounded-md bg-bog px-4 py-2 text-sm font-medium text-white hover:bg-bog-dark disabled:opacity-50"
           >
             {loading ? "Generating…" : "Generate comparison"}
           </button>
@@ -230,7 +230,7 @@ export default function AnalysisPage() {
                 onClick={() => selectPlatformTab(tab.key)}
                 className={clsx(
                   "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                  platformTab === tab.key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  platformTab === tab.key ? "bg-bog text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                 )}
               >
                 {tab.label}
