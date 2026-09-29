@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 const brandSchema = z.object({
   name: z.string().min(1),
@@ -24,10 +25,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
   const body = await req.json();
   const parsed = brandSchema.safeParse(body);
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
   const { data, error } = await supabase
     .from("brands")
-    .insert({ ...parsed.data, created_by: user.id })
+    .insert({ ...parsed.data, created_by: current.userId })
     .select()
     .single();
 

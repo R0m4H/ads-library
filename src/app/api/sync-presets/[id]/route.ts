@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 const updateSchema = z.object({
   label: z.string().min(1).optional(),
@@ -11,6 +12,10 @@ const updateSchema = z.object({
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
+
   const parsed = updateSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
@@ -22,6 +27,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
+
   const { error } = await supabase.from("sync_presets").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

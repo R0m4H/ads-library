@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/gemini/client";
 import type { AdMedia, Platform } from "@/lib/types";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 // A couple of sequential Gemini calls can take a while; give it headroom.
 export const maxDuration = 60;
@@ -60,10 +61,9 @@ Return exactly one entry per ad id given above, in any order.`;
 
 export async function POST() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
   const { data: themeRules } = await supabase.from("theme_rules").select("name").order("name");
   const themeNames = (themeRules ?? []).map((t) => t.name);

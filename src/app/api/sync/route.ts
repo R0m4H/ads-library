@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { startActorRun } from "@/lib/apify/client";
 import { buildActorInput } from "@/lib/apify/normalize";
 import type { Platform } from "@/lib/types";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 const bodySchema = z.object({
   brand_id: z.string().uuid(),
@@ -19,10 +20,9 @@ const ACTOR_ENV: Record<Platform, string> = {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
   const parsed = bodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
   const { data: run, error: runErr } = await supabase
     .from("scrape_runs")
-    .insert({ brand_id, platform, status: "running", started_by: user.id })
+    .insert({ brand_id, platform, status: "running", started_by: current.userId })
     .select()
     .single();
   if (runErr || !run) return NextResponse.json({ error: runErr?.message ?? "Could not create run" }, { status: 500 });

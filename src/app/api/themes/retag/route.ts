@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { matchThemes } from "@/lib/classify";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 // Bulk re-classification can touch a lot of rows with no external network
 // calls (unlike Apify sync), so it's fast, but give it headroom anyway.
@@ -8,10 +9,9 @@ export const maxDuration = 60;
 
 export async function POST() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
   const { data: rules, error: rulesError } = await supabase.from("theme_rules").select("name, keywords, priority, excludes");
   if (rulesError) return NextResponse.json({ error: rulesError.message }, { status: 500 });

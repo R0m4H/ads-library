@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserRole, canEdit } from "@/lib/role";
 import { StatTile } from "@/components/StatTile";
 import { PLATFORM_LABELS, type Platform } from "@/lib/types";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const current = await getCurrentUserRole(supabase);
+  if (!canEdit(current?.role)) redirect("/ads");
 
   const [{ count: brandCount }, { count: activeAdCount }, { count: totalAdCount }, { data: brands }, { data: activeAds }] =
     await Promise.all([

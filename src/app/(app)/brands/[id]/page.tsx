@@ -7,6 +7,7 @@ import { PlatformBadge } from "@/components/PlatformBadge";
 import { SyncButton } from "@/components/SyncButton";
 import { LogoUploader } from "@/components/LogoUploader";
 import { SyncPresetsEditor } from "@/components/SyncPresetsEditor";
+import { RoleGate } from "@/components/RoleGate";
 
 const PLATFORM_FIELDS: { platform: Platform; fields: { key: keyof Brand; label: string; placeholder?: string }[] }[] = [
   { platform: "meta", fields: [{ key: "meta_page_id", label: "Facebook Page ID", placeholder: "e.g. 119630781428450" }] },
@@ -126,12 +127,15 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
     setSaving(false);
   }
 
-  if (loading) return <p className="text-sm text-neutral-400">Loading…</p>;
-  if (!brand) return <p className="text-sm text-neutral-400">Brand not found.</p>;
-
   const isEditing = Object.keys(editing).length > 0;
 
   return (
+    <RoleGate minRole="editor">
+      {loading ? (
+        <p className="text-sm text-neutral-400">Loading…</p>
+      ) : !brand ? (
+        <p className="text-sm text-neutral-400">Brand not found.</p>
+      ) : (
     <div className="mx-auto max-w-3xl space-y-6">
       <Link href="/brands" className="text-sm text-neutral-500 underline underline-offset-2">
         ← Back to Brands
@@ -308,5 +312,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </section>
     </div>
+      )}
+    </RoleGate>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { ThemeRule } from "@/lib/types";
+import { canEdit } from "@/lib/role";
+import { useCurrentUser } from "./RoleProvider";
 
 export function ThemeTagEditor({
   adId,
@@ -13,6 +15,8 @@ export function ThemeTagEditor({
   tags: string[];
   onChange: (tags: string[]) => void;
 }) {
+  const { role } = useCurrentUser();
+  const readOnly = !canEdit(role);
   const [saving, setSaving] = useState(false);
   const [themes, setThemes] = useState<ThemeRule[]>([]);
   const [customTag, setCustomTag] = useState("");
@@ -44,6 +48,22 @@ export function ThemeTagEditor({
   }
 
   const available = themes.map((t) => t.name).filter((name) => !tags.includes(name));
+
+  if (readOnly) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {tags.length === 0 ? (
+          <span className="text-xs text-neutral-400">No themes</span>
+        ) : (
+          tags.map((tag) => (
+            <span key={tag} className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700">
+              {tag}
+            </span>
+          ))
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

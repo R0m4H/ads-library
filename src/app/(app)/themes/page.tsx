@@ -7,6 +7,7 @@ import clsx from "clsx";
 import type { AdMedia, Platform, ThemeRule } from "@/lib/types";
 import { ThemeRuleCard } from "@/components/ThemeRuleCard";
 import { PlatformBadge } from "@/components/PlatformBadge";
+import { RoleGate } from "@/components/RoleGate";
 
 function parseKeywords(input: string): string[] {
   return input
@@ -162,6 +163,7 @@ export default function ThemesPage() {
   }
 
   return (
+    <RoleGate minRole="editor">
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -380,5 +382,6 @@ export default function ThemesPage() {
         </div>
       )}
     </div>
+    </RoleGate>
   );
 }

@@ -8,10 +8,13 @@ import type { AdWithBrand } from "@/lib/types";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { ThemeTagEditor } from "@/components/ThemeTagEditor";
 import { daysSince, formatDate, youtubeEmbedUrl } from "@/lib/format";
+import { canEdit } from "@/lib/role";
+import { useCurrentUser } from "@/components/RoleProvider";
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { role } = useCurrentUser();
   const [ad, setAd] = useState<AdWithBrand | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,13 +42,15 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         <Link href="/ads" className="text-sm text-neutral-500 underline underline-offset-2">
           ← Back to Ad Library
         </Link>
-        <button
-          onClick={remove}
-          className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Delete ad
-        </button>
+        {canEdit(role) && (
+          <button
+            onClick={remove}
+            className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete ad
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

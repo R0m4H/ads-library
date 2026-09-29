@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 const themeSchema = z.object({
   name: z.string().min(1),
@@ -18,17 +19,16 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
   const parsed = themeSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { data, error } = await supabase
     .from("theme_rules")
-    .insert({ ...parsed.data, created_by: user.id })
+    .insert({ ...parsed.data, created_by: current.userId })
     .select()
     .single();
 

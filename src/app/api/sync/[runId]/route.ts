@@ -4,6 +4,7 @@ import { abortActorRun, getDatasetItems, getRunStatus } from "@/lib/apify/client
 import { normalizeItem } from "@/lib/apify/normalize";
 import { classifyAd } from "@/lib/classify";
 import type { Platform } from "@/lib/types";
+import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 // Large batches (Full preset = 1000 ads) need real headroom for the Apify
 // dataset fetch + bulk upserts below.
@@ -126,6 +127,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
   const supabase = await createClient();
+  const current = await getCurrentUserRole(supabase);
+  if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
   const { data: run, error } = await supabase.from("scrape_runs").select("*").eq("id", runId).single();
   if (error || !run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
