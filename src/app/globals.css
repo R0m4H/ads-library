@@ -12,3 +12,23 @@
   --color-navy: #0a1628;
   --color-navy-light: #1a2e52;
 }
+
+/* Dropdowns: the native arrow hugs the right border and collides with long
+   option text. Draw our own chevron with proper inset, and reserve room for it.
+   Kept outside any @layer on purpose so it wins over the px-* utilities that
+   individual selects set. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 8 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.25rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+select:disabled {
+  cursor: not-allowed;
+}
