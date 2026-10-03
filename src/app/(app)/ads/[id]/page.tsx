@@ -159,18 +159,6 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
               <p className="text-xs text-neutral-400">Format</p>
               <p className="font-medium capitalize">{ad.ad_format ?? "—"}</p>
             </div>
-            {ad.spend_estimate && (
-              <div>
-                <p className="text-xs text-neutral-400">Spend estimate</p>
-                <p className="font-medium">{ad.spend_estimate}</p>
-              </div>
-            )}
-            {ad.impressions_estimate && (
-              <div>
-                <p className="text-xs text-neutral-400">Impressions estimate</p>
-                <p className="font-medium">{ad.impressions_estimate}</p>
-              </div>
-            )}
           </div>
 
           <div>
