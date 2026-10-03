@@ -71,13 +71,13 @@ export default function TeamPage() {
                   <p className="truncate text-xs text-neutral-400">{m.email}</p>
                 </div>
                 {m.id === userId ? (
-                  <span className="text-xs text-neutral-400">{m.role} (you)</span>
+                  <span className="shrink-0 whitespace-nowrap text-xs text-neutral-400">{m.role} (you)</span>
                 ) : (
                   <select
                     value={m.role}
                     disabled={savingId === m.id}
                     onChange={(e) => changeRole(m.id, e.target.value as Role)}
-                    className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm disabled:opacity-50"
+                    className="shrink-0 rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm disabled:opacity-50"
                   >
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r} value={r}>

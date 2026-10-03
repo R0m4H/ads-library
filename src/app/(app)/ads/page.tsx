@@ -86,12 +86,12 @@ function AdsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">Ad Library</h1>
           <p className="text-sm text-neutral-500">{total} ad{total === 1 ? "" : "s"} matching your filters.</p>
         </div>
-        <label className="flex items-center gap-2 text-sm text-neutral-500">
+        <label className="flex items-center gap-2 whitespace-nowrap text-sm text-neutral-500">
           Per page
           <select
             value={pageSize}
@@ -135,7 +135,7 @@ function AdsPageInner() {
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-40"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
           >
             Previous
           </button>
@@ -145,7 +145,7 @@ function AdsPageInner() {
           <button
             disabled={page + 1 >= totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-40"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
           >
             Next
           </button>

@@ -42,18 +42,18 @@ export function Nav({ email }: { email: string | null }) {
 
   return (
     <header className="bg-gradient-to-r from-navy to-navy-light">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-8">
-          <span className="text-lg font-semibold tracking-tight text-white">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-8 gap-y-2">
+          <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-white">
             Competitors <span className="text-bog-light">Analysis</span>
           </span>
-          <nav className="flex gap-1">
+          <nav className="flex flex-wrap gap-1">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   pathname === link.href
                     ? "bg-bog text-white"
                     : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -64,9 +64,9 @@ export function Nav({ email }: { email: string | null }) {
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-3 text-sm text-white/70">
-          {email && <span>{email}</span>}
-          <button onClick={signOut} className="rounded-md px-3 py-1.5 font-medium text-white/70 hover:bg-white/10 hover:text-white">
+        <div className="flex min-w-0 items-center gap-3 text-sm text-white/70">
+          {email && <span className="hidden min-w-0 max-w-[16rem] truncate md:inline">{email}</span>}
+          <button onClick={signOut} className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-white/70 hover:bg-white/10 hover:text-white">
             Sign out
           </button>
         </div>

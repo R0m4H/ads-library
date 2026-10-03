@@ -80,18 +80,18 @@ export default async function DashboardPage() {
           )}
           <ul className="space-y-2">
             {(recentRuns ?? []).map((run) => (
-              <li key={run.id} className="flex items-center justify-between text-sm">
-                <span className="text-neutral-700">
+              <li key={run.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 break-words text-neutral-700">
                   {(run as unknown as { brand: { name: string } }).brand?.name ?? "Unknown brand"} · {PLATFORM_LABELS[run.platform as Platform]}
                 </span>
                 <span
-                  className={
+                  className={`shrink-0 ${
                     run.status === "succeeded"
                       ? "text-green-600"
                       : run.status === "failed"
                         ? "text-red-600"
                         : "text-neutral-400"
-                  }
+                  }`}
                 >
                   {run.status === "succeeded" ? `${run.ads_found ?? 0} ads` : run.status}
                 </span>

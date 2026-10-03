@@ -58,7 +58,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md bg-bog px-3 py-2 text-sm font-medium text-white hover:bg-bog-dark"
+        className="whitespace-nowrap rounded-md bg-bog px-3 py-2 text-sm font-medium text-white hover:bg-bog-dark"
       >
         + Add brand
       </button>
@@ -66,7 +66,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-neutral-200 bg-white p-5">
+    <form onSubmit={submit} className="w-full space-y-4 rounded-xl border border-neutral-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">New brand</h3>
         <button type="button" onClick={() => setOpen(false)} className="text-sm text-neutral-400 hover:text-neutral-700">

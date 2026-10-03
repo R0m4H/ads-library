@@ -2,6 +2,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import clsx from "clsx";
 import type { Brand, Platform, ScrapeRun, SyncPreset } from "@/lib/types";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { SyncButton } from "@/components/SyncButton";
@@ -143,8 +144,8 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
         ← Back to Brands
       </Link>
 
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {brand.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={brand.logo_url} alt="" className="h-12 w-12 flex-shrink-0 rounded-full object-cover" />
@@ -153,19 +154,21 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
               {brand.name.slice(0, 1)}
             </span>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">{brand.name}</h1>
+          <div className="min-w-0">
+            <h1 className="break-words text-xl font-semibold leading-snug">
+              {brand.name}
               {brand.is_own && (
-                <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+                <span className="ml-2 inline-block rounded bg-bog px-1.5 py-0.5 align-middle text-[10px] font-semibold leading-none text-white">
+                  YOU
+                </span>
               )}
-            </div>
+            </h1>
             {brand.category && <p className="text-sm text-neutral-500">{brand.category}</p>}
           </div>
         </div>
         <Link
           href={`/ads?brand_id=${brand.id}`}
-          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          className="shrink-0 whitespace-nowrap rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
         >
           View ads
         </Link>
@@ -287,20 +290,17 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
         ) : (
           <ul className="space-y-2">
             {runs.map((run) => (
-              <li key={run.id} className="flex items-center justify-between text-sm">
+              <li key={run.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
                 <span className="flex items-center gap-2 text-neutral-700">
                   <PlatformBadge platform={run.platform} />
                   {new Date(run.started_at).toLocaleString()}
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="flex min-w-0 items-center gap-2">
                   <span
-                    className={
-                      run.status === "succeeded"
-                        ? "text-green-600"
-                        : run.status === "failed"
-                          ? "text-red-600"
-                          : "text-neutral-400"
-                    }
+                    className={clsx(
+                      "break-words",
+                      run.status === "succeeded" ? "text-green-600" : run.status === "failed" ? "text-red-600" : "text-neutral-400"
+                    )}
                   >
                     {run.status === "succeeded"
                       ? `${run.ads_found ?? 0} ads (${run.ads_active ?? 0} active)`

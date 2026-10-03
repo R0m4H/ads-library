@@ -244,11 +244,11 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-2">
                   {r.brand?.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.brand.logo_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                    <img src={r.brand.logo_url} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                   ) : null}
-                  <p className="text-sm font-semibold text-neutral-900">{r.brand?.name ?? "Unknown brand"}</p>
+                  <p className="min-w-0 break-words text-sm font-semibold text-neutral-900">{r.brand?.name ?? "Unknown brand"}</p>
                 </div>
-                <div className="mt-2 flex gap-4">
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
                   <div>
                     <p className="text-lg font-semibold">{r.active}</p>
                     <p className="text-xs text-neutral-400">active</p>
@@ -349,7 +349,8 @@ export default function AnalysisPage() {
               <h2 className="border-b border-neutral-200 px-5 py-3 text-sm font-semibold text-neutral-700">
                 Gap &amp; opportunity priority matrix
               </h2>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
                     <th className="px-4 py-2">Gap / opportunity</th>
@@ -365,7 +366,7 @@ export default function AnalysisPage() {
                       <td className="px-4 py-2.5 text-neutral-600">{g.evidence}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{g.move}</td>
                       <td className="px-4 py-2.5">
-                        <span className={clsx("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", PRIORITY_STYLES[g.priority])}>
+                        <span className={clsx("whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", PRIORITY_STYLES[g.priority])}>
                           {g.priority}
                         </span>
                       </td>
@@ -373,6 +374,7 @@ export default function AnalysisPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -382,8 +384,8 @@ export default function AnalysisPage() {
               <ul className="space-y-2">
                 {aiAnalysis.checklist.map((item, i) => (
                   <li key={i} className="flex items-start gap-3 border-b border-neutral-100 pb-2 text-sm last:border-0 last:pb-0">
-                    <span className="min-w-[20px] text-xs font-semibold text-neutral-400">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="text-neutral-700">{item}</span>
+                    <span className="min-w-[20px] shrink-0 text-xs font-semibold text-neutral-400">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="min-w-0 break-words text-neutral-700">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -395,14 +397,14 @@ export default function AnalysisPage() {
             <div className={clsx("grid grid-cols-1 gap-4", KPI_GRID_COLS[Math.min(rows.length, 4)])}>
               {rows.map((r, i) => (
                 <div key={r.brand?.id ?? i} className="rounded-xl border border-neutral-200 bg-white p-4">
-                  <p className="mb-2 text-sm font-semibold text-neutral-900">{r.brand?.name ?? "Unknown brand"}</p>
+                  <p className="mb-2 break-words text-sm font-semibold text-neutral-900">{r.brand?.name ?? "Unknown brand"}</p>
                   {r.headlines.length === 0 ? (
                     <p className="text-xs text-neutral-400">No headline text on these ads.</p>
                   ) : (
                     <ul className="max-h-80 space-y-1 overflow-y-auto pr-1">
                       {r.headlines.map(({ headline, count }) => (
                         <li key={headline} className="flex items-start justify-between gap-2 text-xs">
-                          <span className="text-neutral-600">{headline}</span>
+                          <span className="min-w-0 break-words text-neutral-600">{headline}</span>
                           <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 font-medium text-neutral-600">{count}</span>
                         </li>
                       ))}

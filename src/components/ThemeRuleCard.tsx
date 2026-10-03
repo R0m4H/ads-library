@@ -148,16 +148,16 @@ export function ThemeRuleCard({
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-neutral-900">{theme.name}</h3>
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="break-words font-semibold text-neutral-900">{theme.name}</h3>
           {theme.priority !== 0 && (
-            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
+            <span className="whitespace-nowrap rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
               priority {theme.priority}
             </span>
           )}
         </div>
-        <div className="flex gap-3 text-xs">
+        <div className="flex shrink-0 gap-3 whitespace-nowrap pt-0.5 text-xs">
           <button onClick={() => setEditing(true)} className="font-medium text-neutral-500 underline underline-offset-2">
             Edit
           </button>

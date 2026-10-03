@@ -98,23 +98,23 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           <div className="flex items-center gap-2">
             {ad.brand.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={ad.brand.logo_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+              <img src={ad.brand.logo_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
             ) : (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 text-sm">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm">
                 {ad.brand.name.slice(0, 1)}
               </span>
             )}
-            <div>
-              <p className="font-semibold text-neutral-900">{ad.brand.name}</p>
+            <div className="min-w-0">
+              <p className="break-words font-semibold text-neutral-900">{ad.brand.name}</p>
               {ad.brand.category && <p className="text-xs text-neutral-500">{ad.brand.category}</p>}
             </div>
             {ad.brand.is_own && (
-              <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+              <span className="shrink-0 rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">YOU</span>
             )}
           </div>
 
-          {ad.headline && <h1 className="text-lg font-semibold text-neutral-900">{ad.headline}</h1>}
-          {ad.body && <p className="whitespace-pre-wrap text-sm text-neutral-700">{ad.body}</p>}
+          {ad.headline && <h1 className="break-words text-lg font-semibold text-neutral-900">{ad.headline}</h1>}
+          {ad.body && <p className="whitespace-pre-wrap break-words text-sm text-neutral-700">{ad.body}</p>}
           {ad.cta && (
             <span className="inline-block w-fit rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700">
               {ad.cta}

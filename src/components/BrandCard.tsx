@@ -21,8 +21,8 @@ export function BrandCard({ brand, onDelete }: { brand: Brand; onDelete: (id: st
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3 sm:flex-1">
           {brand.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={brand.logo_url} alt="" className="h-9 w-9 flex-shrink-0 rounded-full object-cover" />
@@ -31,19 +31,23 @@ export function BrandCard({ brand, onDelete }: { brand: Brand; onDelete: (id: st
               {brand.name.slice(0, 1)}
             </span>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <Link href={`/brands/${brand.id}`} className="font-semibold text-neutral-900 hover:underline">
+          <div className="min-w-0">
+            {/* Badge sits inline after the last word of the name, so a long
+                (wrapping) name never pushes it into the actions column. */}
+            <h3 className="break-words font-semibold leading-snug text-neutral-900">
+              <Link href={`/brands/${brand.id}`} className="hover:underline">
                 {brand.name}
               </Link>
               {brand.is_own && (
-                <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+                <span className="ml-2 inline-block rounded bg-bog px-1.5 py-0.5 align-middle text-[10px] font-semibold leading-none text-white">
+                  YOU
+                </span>
               )}
-            </div>
-            {brand.category && <p className="text-xs text-neutral-500">{brand.category}</p>}
+            </h3>
+            {brand.category && <p className="mt-0.5 text-xs text-neutral-500">{brand.category}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3 whitespace-nowrap pl-12 sm:pl-0 sm:pt-0.5">
           <Link href={`/ads?brand_id=${brand.id}`} className="text-xs font-medium text-neutral-600 underline underline-offset-2">
             View ads
           </Link>

@@ -64,18 +64,18 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-neutral-800">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-neutral-800">
           {ad.brand.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={ad.brand.logo_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+            <img src={ad.brand.logo_url} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover" />
           ) : (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-200 text-[10px]">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-[10px]">
               {ad.brand.name.slice(0, 1)}
             </span>
           )}
-          <span className="truncate">{ad.brand.name}</span>
+          <span className="min-w-0 truncate">{ad.brand.name}</span>
           {ad.brand.is_own && (
-            <span className="rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold text-white">YOU</span>
+            <span className="shrink-0 rounded bg-bog px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">YOU</span>
           )}
         </div>
 
