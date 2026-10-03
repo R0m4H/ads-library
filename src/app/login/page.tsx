@@ -29,9 +29,17 @@ export default function LoginPage() {
           router.refresh();
         }
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) setError(error.message);
-        else setMessage("Check your email to confirm your account, then sign in.");
+        else if (data.session) {
+          // Email confirmation is off, so signing up also signs the user in.
+          // New accounts start as viewers, whose home is the Ad Library.
+          router.push("/ads");
+          router.refresh();
+        } else {
+          setMessage("Account created. You can sign in now.");
+          setMode("sign-in");
+        }
       }
     } catch (e) {
       // A thrown network-level error (e.g. "Failed to fetch") skips the
