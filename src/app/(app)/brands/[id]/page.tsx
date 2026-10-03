@@ -231,9 +231,9 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
               />
             </div>
             {PLATFORM_FIELDS.map(({ platform, fields }) => (
-              <div key={platform} className="grid grid-cols-2 gap-4">
+              <div key={platform} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {fields.map((f) => (
-                  <div key={f.key} className={fields.length === 1 ? "col-span-2" : undefined}>
+                  <div key={f.key} className={fields.length === 1 ? "sm:col-span-2" : undefined}>
                     <label className="mb-1 block text-xs font-medium text-neutral-600">{f.label}</label>
                     <input
                       value={editing[f.key as string] ?? ""}

@@ -27,6 +27,10 @@ select {
   padding-right: 2.25rem;
   text-overflow: ellipsis;
   cursor: pointer;
+  /* A select is as wide as its longest <option> by default — with long brand or
+     theme names that is wider than a phone. Never let it outgrow its row. */
+  max-width: 100%;
+  min-width: 0;
 }
 
 select:disabled {

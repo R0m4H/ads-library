@@ -74,7 +74,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-medium text-neutral-600">Name *</label>
           <input
@@ -93,7 +93,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="mb-1 block text-xs font-medium text-neutral-600">Logo</label>
           <LogoUploader value={form.logo_url} onChange={(url) => update("logo_url", url)} />
         </div>
@@ -109,7 +109,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
         This is my own brand (not a competitor)
       </label>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-medium text-neutral-600">Meta Page ID</label>
           <input
@@ -127,7 +127,7 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
             placeholder="AR08888592736429539329"
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
-          <p className="mt-1 text-[11px] text-neutral-400">
+          <p className="mt-1 break-words text-[11px] text-neutral-400">
             Required for Google sync — the &quot;AR...&quot; ID from an adstransparency.google.com/advertiser/AR... URL.
           </p>
         </div>
@@ -139,9 +139,9 @@ export function BrandForm({ onCreated }: { onCreated: (brand: Brand) => void }) 
             placeholder="brand.com"
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
-          <p className="mt-1 text-[11px] text-neutral-400">Not used for syncing — the current Google scraper needs the advertiser ID above.</p>
+          <p className="mt-1 break-words text-[11px] text-neutral-400">Not used for syncing — the current Google scraper needs the advertiser ID above.</p>
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="mb-1 block text-xs font-medium text-neutral-600">LinkedIn company name or Ad Library URL</label>
           <input
             value={form.linkedin_company_url}

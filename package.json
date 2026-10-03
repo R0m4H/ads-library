@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "e2e": "playwright test --project=mobile --project=tablet --project=desktop",
+    "e2e:login": "node e2e/login.mjs",
+    "e2e:update": "playwright test --project=mobile --project=tablet --project=desktop --update-snapshots",
+    "e2e:selftest": "E2E_SELFTEST=1 playwright test --project=selftest",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -20,6 +25,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -79,8 +79,8 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
           )}
         </div>
 
-        {ad.headline && <h3 className="line-clamp-2 text-sm font-semibold text-neutral-900">{ad.headline}</h3>}
-        {ad.body && <p className="line-clamp-2 text-sm text-neutral-600">{truncate(ad.body, 140)}</p>}
+        {ad.headline && <h3 className="line-clamp-2 break-words text-sm font-semibold text-neutral-900">{ad.headline}</h3>}
+        {ad.body && <p className="line-clamp-2 break-words text-sm text-neutral-600">{truncate(ad.body, 140)}</p>}
 
         {ad.cta && (
           <span className="w-fit rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-700">
