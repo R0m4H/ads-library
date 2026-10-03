@@ -22,7 +22,11 @@ export interface NormalizedAd {
 
 function str(v: unknown): string | null {
   if (v === undefined || v === null || v === "") return null;
-  if (typeof v === "string") return v;
+  // Whitespace-only counts as empty: Meta returns " " for a carousel card's
+  // body, which would otherwise win over the real top-level copy via `??`.
+  // Not trimmed on purpose — changing stored values would make every ad look
+  // "changed" and force a full rewrite on the next sync.
+  if (typeof v === "string") return v.trim() === "" ? null : v;
   return String(v);
 }
 
