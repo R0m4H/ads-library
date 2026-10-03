@@ -36,6 +36,8 @@ export function FiltersBar({
   themes: ThemeRule[];
 }) {
   const { role } = useCurrentUser();
+  const ownBrands = brands.filter((b) => b.is_own);
+  const competitorBrands = brands.filter((b) => !b.is_own);
 
   function set<K extends keyof AdFilters>(key: K, value: AdFilters[K]) {
     onChange({ ...filters, [key]: value });
@@ -75,12 +77,24 @@ export function FiltersBar({
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
         >
           <option value="">All brands</option>
-          {brands.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.is_own ? "★ " : ""}
-              {b.name}
-            </option>
-          ))}
+          {ownBrands.length > 0 && (
+            <optgroup label="Your brands">
+              {ownBrands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {competitorBrands.length > 0 && (
+            <optgroup label="Competitors">
+              {competitorBrands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
 
         <select

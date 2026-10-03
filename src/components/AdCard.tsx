@@ -34,7 +34,7 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
         </button>
       )}
 
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
+      <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
         {media ? (
           media.type === "video" ? (
             <div className="flex h-full w-full items-center justify-center bg-neutral-900">
