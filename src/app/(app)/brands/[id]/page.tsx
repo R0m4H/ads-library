@@ -41,6 +41,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
   const [runs, setRuns] = useState<ScrapeRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Record<string, string>>({});
+  const [editingIsOwn, setEditingIsOwn] = useState(false);
   const [saving, setSaving] = useState(false);
   const [adCounts, setAdCounts] = useState<{ total: number; active: number } | null>(null);
   const [presets, setPresets] = useState<SyncPreset[]>([]);
@@ -101,6 +102,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
 
   function startEditing() {
     if (!brand) return;
+    setEditingIsOwn(brand.is_own);
     setEditing({
       name: brand.name,
       category: brand.category ?? "",
@@ -117,7 +119,7 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
     const res = await fetch(`/api/brands/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editing),
+      body: JSON.stringify({ ...editing, is_own: editingIsOwn }),
     });
     const json = await res.json();
     if (res.ok) {
@@ -208,6 +210,15 @@ export default function BrandDetailPage({ params }: { params: Promise<{ id: stri
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={editingIsOwn}
+                onChange={(e) => setEditingIsOwn(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300"
+              />
+              This is my own brand (not a competitor)
+            </label>
             <div>
               <label className="mb-1 block text-xs font-medium text-neutral-600">Logo</label>
               <LogoUploader
