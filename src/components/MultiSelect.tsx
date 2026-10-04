@@ -21,6 +21,7 @@ export function MultiSelect({
   options,
   value,
   onChange,
+  single = false,
 }: {
   /** Trigger text when nothing is ticked, e.g. "All brands". */
   allLabel: string;
@@ -29,6 +30,8 @@ export function MultiSelect({
   options: MultiSelectOption[];
   value: string[];
   onChange: (value: string[]) => void;
+  /** Pick exactly one option; choosing closes the list. Used by `SingleSelect`. */
+  single?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -72,6 +75,15 @@ export function MultiSelect({
     onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
   }
 
+  function chooseOne(v: string) {
+    onChange([v]);
+    setOpen(false);
+    buttonRef.current?.focus();
+  }
+
+  // In single mode the first option is the default ("everything"), so only a different pick is "active".
+  const isActive = single ? value.length > 0 && value[0] !== options[0]?.value : value.length > 0;
+
   const summary =
     value.length === 0
       ? allLabel
@@ -108,7 +120,7 @@ export function MultiSelect({
         aria-controls={open ? panelId : undefined}
         className={clsx(
           "relative flex max-w-full min-w-0 items-center rounded-md border bg-white py-2 pl-3 pr-9 text-left text-sm focus:outline-none focus-visible:border-bog",
-          value.length > 0 ? "border-bog text-neutral-900" : "border-neutral-300 text-neutral-900"
+          isActive ? "border-bog text-neutral-900" : "border-neutral-300 text-neutral-900"
         )}
       >
         <span className="min-w-0 max-w-[16rem] truncate">{summary}</span>
@@ -143,21 +155,40 @@ export function MultiSelect({
                 {section.group && (
                   <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{section.group}</p>
                 )}
-                {section.items.map((o) => (
-                  <label key={o.value} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm text-neutral-800 hover:bg-neutral-50">
-                    <input
-                      type="checkbox"
-                      checked={value.includes(o.value)}
-                      onChange={() => toggleValue(o.value)}
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 accent-bog"
-                    />
-                    <span className="min-w-0 break-words">{o.label}</span>
-                  </label>
-                ))}
+                {section.items.map((o) =>
+                  single ? (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="option"
+                      aria-selected={value.includes(o.value)}
+                      onClick={() => chooseOne(o.value)}
+                      className={clsx(
+                        "block w-full rounded-md px-2 py-1.5 text-left text-sm",
+                        // No check marks: one option is always chosen (the first is "everything").
+                        // The current one is simply shown highlighted.
+                        value.includes(o.value) ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-800 hover:bg-neutral-50"
+                      )}
+                    >
+                      <span className="break-words">{o.label}</span>
+                    </button>
+                  ) : (
+                    <label key={o.value} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm text-neutral-800 hover:bg-neutral-50">
+                      <input
+                        type="checkbox"
+                        checked={value.includes(o.value)}
+                        onChange={() => toggleValue(o.value)}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 accent-bog"
+                      />
+                      <span className="min-w-0 break-words">{o.label}</span>
+                    </label>
+                  )
+                )}
               </div>
             ))}
           </div>
 
+          {!single && (
           <div className="flex items-center justify-between border-t border-neutral-100 px-3 py-2 text-xs">
             <span className="text-neutral-400">{value.length === 0 ? "Nothing selected = all" : `${value.length} selected`}</span>
             <button
@@ -169,8 +200,34 @@ export function MultiSelect({
               Clear
             </button>
           </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * A dropdown that picks exactly one option, styled like `MultiSelect` (the browser's own <select> menu
+ * can't be styled). The first option is the default.
+ */
+export function SingleSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: MultiSelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <MultiSelect
+      single
+      allLabel={options[0]?.label ?? ""}
+      noun=""
+      options={options}
+      value={[value]}
+      onChange={(v) => onChange(v[0] ?? options[0]?.value ?? "")}
+    />
   );
 }

@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { AD_FORMAT_OPTIONS, UNTAGGED_THEME, type Brand, type Platform, type ThemeRule } from "@/lib/types";
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "./RoleProvider";
-import { MultiSelect } from "./MultiSelect";
+import { MultiSelect, SingleSelect } from "./MultiSelect";
 
 export interface AdFilters {
   q: string;
@@ -24,6 +24,12 @@ const PLATFORM_FILTERS: { value: Platform | ""; label: string }[] = [
   { value: "meta", label: "Meta" },
   { value: "google", label: "Google" },
   { value: "linkedin", label: "LinkedIn" },
+];
+
+const OWN_OPTIONS = [
+  { value: "", label: "Yours + competitors" },
+  { value: "own", label: "Only yours" },
+  { value: "competitors", label: "Only competitors" },
 ];
 
 export function FiltersBar({
@@ -101,15 +107,11 @@ export function FiltersBar({
           onChange={(v) => set("ad_formats", v)}
         />
 
-        <select
+        <SingleSelect
+          options={OWN_OPTIONS}
           value={filters.own}
-          onChange={(e) => set("own", e.target.value as AdFilters["own"])}
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-        >
-          <option value="">Yours + competitors</option>
-          <option value="own">Only yours</option>
-          <option value="competitors">Only competitors</option>
-        </select>
+          onChange={(v) => set("own", v as AdFilters["own"])}
+        />
 
         <label className="flex items-center gap-2 text-sm text-neutral-600">
           <input

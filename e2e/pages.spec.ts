@@ -43,6 +43,14 @@ const SCREENS: Screen[] = [
       await page.getByText("No theme", { exact: true }).waitFor();
     },
   },
+  {
+    name: "ad-library-own-filter-open",
+    path: "/ads",
+    run: async (page) => {
+      await page.getByRole("button", { name: "Yours + competitors" }).click();
+      await page.getByRole("option", { name: "Only competitors" }).waitFor();
+    },
+  },
   { name: "brands", path: "/brands" },
   {
     name: "brands-add-form-open",
@@ -165,6 +173,27 @@ test("ad library: ticking several brands, themes and ad types sends all of them"
   await page.getByRole("button", { name: "2 brands" }).click();
   await page.getByRole("button", { name: "Clear" }).click();
   await expect(page.getByRole("button", { name: "All brands" })).toBeVisible();
+});
+
+test("ad library: the yours/competitors dropdown picks one option and sends it", async ({ page }) => {
+  await installMocks(page);
+  const adRequests: URL[] = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    if (u.pathname === "/api/ads") adRequests.push(u);
+  });
+  await page.goto("/ads");
+  await settle(page);
+
+  await page.getByRole("button", { name: "Yours + competitors" }).click();
+  await page.getByRole("option", { name: "Only yours" }).click();
+  await expect(page.getByRole("button", { name: "Only yours" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Only competitors" })).toHaveCount(0); // choosing closes the list
+  await expect.poll(() => adRequests.at(-1)?.searchParams.get("own")).toBe("own");
+
+  await page.getByRole("button", { name: "Only yours" }).click();
+  await page.getByRole("option", { name: "Yours + competitors" }).click();
+  await expect.poll(() => adRequests.at(-1)?.searchParams.get("own")).toBe(null);
 });
 
 test.describe("login (signed out)", () => {
