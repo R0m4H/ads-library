@@ -105,7 +105,7 @@ export default function ThemesPage() {
     const res = await fetch("/api/themes/retag", { method: "POST" });
     const json = await res.json();
     setRetagResult(
-      res.ok ? `Re-tagged ${json.total} ads — ${json.tagged} matched at least one theme.` : (json.error?.toString() ?? "Failed")
+      res.ok ? `Checked ${json.total} ads — ${json.changed} updated, ${json.tagged} match at least one theme.` : (json.error?.toString() ?? "Failed")
     );
     setRetagging(false);
   }
