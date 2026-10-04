@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 // Sign-up is limited to this email domain. This is only a friendly early check — the real
@@ -15,12 +16,12 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  // Set after a successful sign-up that still needs email confirmation; shows the "check your inbox" screen.
+  const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
     setLoading(true);
     const supabase = createClient();
 
@@ -69,8 +70,8 @@ export default function LoginPage() {
           // account (so it can't be used to discover who is registered), but returns no identities.
           setError("An account with this email already exists. Log in instead.");
         } else {
-          setMessage(`We sent a confirmation link to ${address}. Open it, then log in here.`);
-          setMode("sign-in");
+          setSignedUpEmail(address);
+          setPassword("");
         }
       }
     } catch (e) {
@@ -89,6 +90,31 @@ export default function LoginPage() {
         <h1 className="mb-1 text-xl font-semibold">
           Competitors <span className="text-bog">Analysis</span>
         </h1>
+        {signedUpEmail ? (
+          <div className="mt-6 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-bog-pale text-bog">
+              <MailCheck className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-semibold text-neutral-900">Account created</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              We sent a confirmation link to <strong className="break-words text-neutral-900">{signedUpEmail}</strong>.
+            </p>
+            <p className="mt-2 text-sm text-neutral-600">
+              Open the email and click the link to activate your account. After that, come back here and log in.
+            </p>
+            <p className="mt-3 text-xs text-neutral-400">Can&apos;t find it? Check your spam folder.</p>
+            <button
+              onClick={() => {
+                setSignedUpEmail(null);
+                setMode("sign-in");
+              }}
+              className="mt-6 w-full rounded-md bg-bog px-3 py-2 text-sm font-medium text-white hover:bg-bog-dark"
+            >
+              Go to Log in
+            </button>
+          </div>
+        ) : (
+          <>
         <p className="mb-6 text-sm text-neutral-500">
           {mode === "sign-in" ? "Log in to your team's ad library." : `Create an account with your @${COMPANY_DOMAIN} email.`}
         </p>
@@ -116,7 +142,6 @@ export default function LoginPage() {
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          {message && <p className="text-sm text-green-600">{message}</p>}
           <button
             type="submit"
             disabled={loading}
@@ -131,6 +156,8 @@ export default function LoginPage() {
         >
           {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Log in"}
         </button>
+          </>
+        )}
       </div>
     </div>
   );
