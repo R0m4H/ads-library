@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+// Sign-up is limited to this email domain. This is only a friendly early check — the real
+// enforcement is the database trigger in supabase/migrations/0012_restrict_signup_domains.sql.
+const COMPANY_DOMAIN = "bog.ge";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -29,15 +33,35 @@ export default function LoginPage() {
           router.refresh();
         }
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) setError(error.message);
-        else if (data.session) {
+        const address = email.trim().toLowerCase();
+        if (!address.endsWith(`@${COMPANY_DOMAIN}`)) {
+          setError(`Sign-up is limited to @${COMPANY_DOMAIN} email addresses.`);
+          return;
+        }
+        const { data, error } = await supabase.auth.signUp({
+          email: address,
+          password,
+          // Where the confirmation link in the email sends the person back to.
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (error) {
+          // The database rejects emails outside the approved domain with this generic error.
+          setError(
+            /database error saving new user/i.test(error.message)
+              ? `Couldn't create the account. Sign-up is limited to @${COMPANY_DOMAIN} email addresses.`
+              : error.message
+          );
+        } else if (data.session) {
           // Email confirmation is off, so signing up also signs the user in.
           // New accounts start as viewers, whose home is the Ad Library.
           router.push("/ads");
           router.refresh();
+        } else if (data.user && data.user.identities?.length === 0) {
+          // With confirmation on, Supabase answers "success" for an address that already has an
+          // account (so it can't be used to discover who is registered), but returns no identities.
+          setError("An account with this email already exists. Sign in instead.");
         } else {
-          setMessage("Account created. You can sign in now.");
+          setMessage(`We sent a confirmation link to ${address}. Open it, then sign in here.`);
           setMode("sign-in");
         }
       }
@@ -58,7 +82,7 @@ export default function LoginPage() {
           Competitors <span className="text-bog">Analysis</span>
         </h1>
         <p className="mb-6 text-sm text-neutral-500">
-          {mode === "sign-in" ? "Sign in to your team's ad library." : "Create an account for your team."}
+          {mode === "sign-in" ? "Sign in to your team's ad library." : `Create an account with your @${COMPANY_DOMAIN} email.`}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -66,6 +90,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              placeholder={mode === "sign-up" ? `you@${COMPANY_DOMAIN}` : undefined}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-bog focus:outline-none"
