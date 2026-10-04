@@ -27,8 +27,16 @@ export default function LoginPage() {
     try {
       if (mode === "sign-in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) setError(error.message);
-        else {
+        if (error) {
+          // Supabase gives this same message for a wrong password and for an email with no
+          // account (on purpose, so it can't be used to find out who is registered) — so point
+          // new people to Sign up without saying which of the two it was.
+          setError(
+            /invalid login credentials/i.test(error.message)
+              ? `Invalid login credentials. No account yet? Choose "Sign up" below and use your @${COMPANY_DOMAIN} email.`
+              : error.message
+          );
+        } else {
           router.push("/");
           router.refresh();
         }
@@ -59,9 +67,9 @@ export default function LoginPage() {
         } else if (data.user && data.user.identities?.length === 0) {
           // With confirmation on, Supabase answers "success" for an address that already has an
           // account (so it can't be used to discover who is registered), but returns no identities.
-          setError("An account with this email already exists. Sign in instead.");
+          setError("An account with this email already exists. Log in instead.");
         } else {
-          setMessage(`We sent a confirmation link to ${address}. Open it, then sign in here.`);
+          setMessage(`We sent a confirmation link to ${address}. Open it, then log in here.`);
           setMode("sign-in");
         }
       }
@@ -82,7 +90,7 @@ export default function LoginPage() {
           Competitors <span className="text-bog">Analysis</span>
         </h1>
         <p className="mb-6 text-sm text-neutral-500">
-          {mode === "sign-in" ? "Sign in to your team's ad library." : `Create an account with your @${COMPANY_DOMAIN} email.`}
+          {mode === "sign-in" ? "Log in to your team's ad library." : `Create an account with your @${COMPANY_DOMAIN} email.`}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -114,14 +122,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-md bg-bog px-3 py-2 text-sm font-medium text-white hover:bg-bog-dark disabled:opacity-50"
           >
-            {loading ? "Please wait…" : mode === "sign-in" ? "Sign in" : "Sign up"}
+            {loading ? "Please wait…" : mode === "sign-in" ? "Log in" : "Sign up"}
           </button>
         </form>
         <button
           onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
           className="mt-4 text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
         >
-          {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+          {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Log in"}
         </button>
       </div>
     </div>

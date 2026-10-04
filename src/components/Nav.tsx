@@ -67,7 +67,7 @@ export function Nav({ email }: { email: string | null }) {
         <div className="flex min-w-0 items-center gap-3 text-sm text-white/70">
           {email && <span data-testid="nav-email" className="hidden min-w-0 max-w-[16rem] truncate md:inline">{email}</span>}
           <button onClick={signOut} className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-white/70 hover:bg-white/10 hover:text-white">
-            Sign out
+            Log out
           </button>
         </div>
       </div>

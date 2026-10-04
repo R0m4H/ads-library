@@ -26,8 +26,19 @@ await page.goto(`${BASE_URL}/login`);
 console.log("\nA browser window opened. Sign in there (use an Owner account).");
 console.log("Waiting up to 5 minutes for you to finish…\n");
 
-await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 5 * 60_000 });
-await page.waitForLoadState("networkidle").catch(() => {});
-await context.storageState({ path: OUT });
+try {
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 5 * 60_000 });
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await context.storageState({ path: OUT });
+} catch (e) {
+  const closed = /closed/i.test(String(e));
+  console.error(
+    closed
+      ? "\nThe browser window was closed before you finished signing in, so nothing was saved.\nRun `npm run e2e:login` again and leave the window open until the Ad Library / Dashboard appears.\n"
+      : "\nSign-in did not finish within 5 minutes, so nothing was saved. Run `npm run e2e:login` again.\n"
+  );
+  await browser.close().catch(() => {});
+  process.exit(1);
+}
 await browser.close();
 console.log(`Saved session to ${OUT}. You can now run: npm run e2e:update  (first time)  or  npm run e2e`);
