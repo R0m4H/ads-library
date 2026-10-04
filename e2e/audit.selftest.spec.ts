@@ -54,6 +54,17 @@ test("flags text overlapping text", async ({ page }) => {
   expect((await auditLayout(page)).some((i) => i.rule === "overlap")).toBe(true);
 });
 
+test("ignores text that is hidden underneath an overlay, but still flags visible collisions", async ({ page }) => {
+  await load(
+    page,
+    `<div style="position:relative;height:80px">
+       <span style="position:absolute;left:0;top:0">Underneath text</span>
+       <div style="position:absolute;z-index:30;left:0;top:0;width:200px;height:40px;background:#fff;border:1px solid #ccc"><span>Panel option</span></div>
+     </div>`
+  );
+  expect((await auditLayout(page)).filter((i) => i.rule === "overlap")).toEqual([]);
+});
+
 test("flags content that sticks out of its container", async ({ page }) => {
   await load(page, `<div class="card"><div style="display:flex"><div style="width:600px;flex-shrink:0;background:#eee">wide child</div></div></div>`);
   const issues = await auditLayout(page);

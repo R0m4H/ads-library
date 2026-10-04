@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { UNTAGGED_THEME } from "@/lib/types";
+import { searchTerms, termFilter } from "@/lib/search";
 
 export async function GET(req: Request) {
   const supabase = await createClient();
   const { searchParams } = new URL(req.url);
 
   const platform = searchParams.get("platform");
-  const brandId = searchParams.get("brand_id");
-  const theme = searchParams.get("theme");
-  const adFormat = searchParams.get("ad_format");
+  // These three accept several values (repeat the param: ?brand_id=a&brand_id=b). Repeated params,
+  // not a comma list, because theme names are free text and may contain commas.
+  const brandIds = searchParams.getAll("brand_id").filter(Boolean);
+  const themes = searchParams.getAll("theme").filter(Boolean);
+  const adFormats = searchParams.getAll("ad_format").filter(Boolean);
   const activeOnly = searchParams.get("active_only");
   const missingCopy = searchParams.get("missing_copy");
   const ownOnly = searchParams.get("own"); // "own" | "competitors" | null
@@ -24,13 +27,24 @@ export async function GET(req: Request) {
     .range(page * pageSize, page * pageSize + pageSize - 1);
 
   if (platform) query = query.eq("platform", platform);
-  if (brandId) query = query.eq("brand_id", brandId);
-  if (theme === UNTAGGED_THEME) query = query.eq("theme_tags", "{}");
-  else if (theme) query = query.contains("theme_tags", [theme]);
-  if (adFormat) query = query.eq("ad_format", adFormat);
+  if (brandIds.length) query = query.in("brand_id", brandIds);
+  if (adFormats.length) query = query.in("ad_format", adFormats);
+
+  // Several themes mean "any of them". "No theme" can be mixed in: untagged OR any chosen theme.
+  const wantUntagged = themes.includes(UNTAGGED_THEME);
+  const named = themes.filter((t) => t !== UNTAGGED_THEME);
+  if (wantUntagged && named.length > 0) {
+    const item = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`; // quote + escape for a Postgres array literal
+    query = query.or(`theme_tags.eq.{},theme_tags.ov.{${named.map(item).join(",")}}`);
+  } else if (wantUntagged) {
+    query = query.eq("theme_tags", "{}");
+  } else if (named.length > 0) {
+    query = query.overlaps("theme_tags", named);
+  }
   if (activeOnly === "true") query = query.eq("is_active", true);
   if (missingCopy === "true") query = query.is("headline", null).is("body", null);
-  if (q) query = query.textSearch("search_vector", q, { type: "websearch" });
+  // Each typed word must appear (as a partial match) in the headline, body or CTA.
+  if (q) for (const term of searchTerms(q)) query = query.or(termFilter(term));
 
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

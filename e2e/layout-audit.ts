@@ -115,7 +115,20 @@ export async function auditLayout(page: Page): Promise<LayoutIssue[]> {
     interface Box {
       el: Element;
       rects: DOMRect[];
+      layer: Element | null;
     }
+
+    // A pop-up layer (dropdown panel, modal, tooltip): positioned over the page AND given a z-index.
+    // Text inside one is drawn on top of the page, so it is never "colliding" with page content it
+    // merely covers. An ordinary badge or label that overlaps other text has no such layer — that
+    // is exactly the kind of bug we want to catch — so only compare text on the same layer.
+    const layerOf = (el: Element): Element | null => {
+      for (let n: Element | null = el; n && n !== document.body; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if ((cs.position === "absolute" || cs.position === "fixed") && cs.zIndex !== "auto") return n;
+      }
+      return null;
+    };
 
     // Text that is scrolled/clipped out of view (line-clamp's hidden lines, the
     // far end of a scrollable table) is not on screen, so it can't collide with
@@ -168,7 +181,7 @@ export async function auditLayout(page: Page): Promise<LayoutIssue[]> {
         // Whole control box counts as occupied space (its text is inside it).
         if (el.tagName !== "A" || rects.length === 0) rects.push(rect);
       }
-      if (rects.length) boxes.push({ el, rects });
+      if (rects.length) boxes.push({ el, rects, layer: layerOf(el) });
     }
 
     for (let i = 0; i < boxes.length; i++) {
@@ -176,6 +189,7 @@ export async function auditLayout(page: Page): Promise<LayoutIssue[]> {
         const a = boxes[i];
         const b = boxes[j];
         if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        if (a.layer !== b.layer) continue;
         let hit: [number, number] | null = null;
         for (const ra of a.rects) {
           for (const rb of b.rects) {

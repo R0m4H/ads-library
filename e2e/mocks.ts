@@ -157,8 +157,8 @@ export async function installMocks(page: Page) {
     m = path.match(/^\/api\/ads\/([^/]+)$/);
     if (m) return json(route, { ad: ads.find((a) => a.id === m![1]) ?? ads[0] });
     if (path === "/api/ads") {
-      const brandId = url.searchParams.get("brand_id");
-      const list = brandId ? ads.filter((a) => a.brand_id === brandId) : ads;
+      const brandIds = url.searchParams.getAll("brand_id");
+      const list = brandIds.length ? ads.filter((a) => brandIds.includes(a.brand_id)) : ads;
       const active = url.searchParams.get("active_only") === "true" ? list.filter((a) => a.is_active) : list;
       return json(route, { ads: active, total: active.length, page: 0, pageSize: 24 });
     }

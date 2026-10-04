@@ -5,13 +5,15 @@ import clsx from "clsx";
 import { AD_FORMAT_OPTIONS, UNTAGGED_THEME, type Brand, type Platform, type ThemeRule } from "@/lib/types";
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "./RoleProvider";
+import { MultiSelect } from "./MultiSelect";
 
 export interface AdFilters {
   q: string;
   platform: Platform | "";
-  brand_id: string;
-  theme: string;
-  ad_format: string;
+  /** Empty = all. Several values match any of them. */
+  brand_ids: string[];
+  themes: string[];
+  ad_formats: string[];
   active_only: boolean;
   missing_copy: boolean;
   own: "" | "own" | "competitors";
@@ -36,8 +38,12 @@ export function FiltersBar({
   themes: ThemeRule[];
 }) {
   const { role } = useCurrentUser();
-  const ownBrands = brands.filter((b) => b.is_own);
-  const competitorBrands = brands.filter((b) => !b.is_own);
+  // Your own brands first, then competitors.
+  const brandOptions = [
+    ...brands.filter((b) => b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Your brands" })),
+    ...brands.filter((b) => !b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Competitors" })),
+  ];
+  const themeOptions = [{ value: UNTAGGED_THEME, label: "No theme" }, ...themes.map((t) => ({ value: t.name, label: t.name }))];
 
   function set<K extends keyof AdFilters>(key: K, value: AdFilters[K]) {
     onChange({ ...filters, [key]: value });
@@ -71,58 +77,29 @@ export function FiltersBar({
           />
         </div>
 
-        <select
-          value={filters.brand_id}
-          onChange={(e) => set("brand_id", e.target.value)}
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-        >
-          <option value="">All brands</option>
-          {ownBrands.length > 0 && (
-            <optgroup label="Your brands">
-              {ownBrands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {competitorBrands.length > 0 && (
-            <optgroup label="Competitors">
-              {competitorBrands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+        <MultiSelect
+          allLabel="All brands"
+          noun="brands"
+          options={brandOptions}
+          value={filters.brand_ids}
+          onChange={(v) => set("brand_ids", v)}
+        />
 
-        <select
-          value={filters.theme}
-          onChange={(e) => set("theme", e.target.value)}
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-        >
-          <option value="">All themes</option>
-          <option value={UNTAGGED_THEME}>No theme</option>
-          {themes.map((t) => (
-            <option key={t.id} value={t.name}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <MultiSelect
+          allLabel="All themes"
+          noun="themes"
+          options={themeOptions}
+          value={filters.themes}
+          onChange={(v) => set("themes", v)}
+        />
 
-        <select
-          value={filters.ad_format}
-          onChange={(e) => set("ad_format", e.target.value)}
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-        >
-          <option value="">All ad types</option>
-          {AD_FORMAT_OPTIONS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+        <MultiSelect
+          allLabel="All ad types"
+          noun="ad types"
+          options={AD_FORMAT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))}
+          value={filters.ad_formats}
+          onChange={(v) => set("ad_formats", v)}
+        />
 
         <select
           value={filters.own}

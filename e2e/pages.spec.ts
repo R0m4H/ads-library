@@ -27,6 +27,22 @@ const SCREENS: Screen[] = [
   { name: "ad-library", path: "/ads" },
   { name: "ad-detail", path: "/ads/ad-0" },
   { name: "ad-detail-no-copy", path: "/ads/ad-3" },
+  {
+    name: "ad-library-brand-filter-open",
+    path: "/ads",
+    run: async (page) => {
+      await page.getByRole("button", { name: "All brands" }).click();
+      await page.getByText("Competitors", { exact: true }).waitFor();
+    },
+  },
+  {
+    name: "ad-library-theme-filter-open",
+    path: "/ads",
+    run: async (page) => {
+      await page.getByRole("button", { name: "All themes" }).click();
+      await page.getByText("No theme", { exact: true }).waitFor();
+    },
+  },
   { name: "brands", path: "/brands" },
   {
     name: "brands-add-form-open",
@@ -107,6 +123,49 @@ for (const screen of SCREENS) {
     }
   });
 }
+
+test("ad library: ticking several brands, themes and ad types sends all of them", async ({ page }) => {
+  await installMocks(page);
+  const adRequests: URL[] = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    if (u.pathname === "/api/ads") adRequests.push(u);
+  });
+
+  await page.goto("/ads");
+  await settle(page);
+
+  await page.getByRole("button", { name: "All brands" }).click();
+  await page.getByLabel("TBC", { exact: true }).check();
+  await page.getByLabel("Silk Bank").check();
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: /^(Silk Bank|2 brands)/ }).waitFor();
+  await expect(page.getByRole("button", { name: "2 brands" })).toBeVisible();
+
+  await page.getByRole("button", { name: "All themes" }).click();
+  await page.getByLabel("No theme").check();
+  await page.getByLabel("Deposits").check();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "2 themes" })).toBeVisible();
+
+  await page.getByRole("button", { name: "All ad types" }).click();
+  await page.getByLabel("Image").check();
+  await page.getByLabel("Video").check();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "2 ad types" })).toBeVisible();
+
+  await expect.poll(() => adRequests.at(-1)?.searchParams.getAll("brand_id").length).toBe(2);
+  const last = adRequests.at(-1)!;
+  expect(last.searchParams.getAll("brand_id")).toHaveLength(2);
+  expect(last.searchParams.getAll("theme").sort()).toEqual(["Deposits", "__untagged__"]);
+  expect(last.searchParams.getAll("ad_format").sort()).toEqual(["image", "video"]);
+
+  // Clearing goes back to "all".
+  await page.getByRole("button", { name: "2 brands" }).click();
+  await page.getByRole("button", { name: "Clear" }).click();
+  await expect(page.getByRole("button", { name: "All brands" })).toBeVisible();
+});
 
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });

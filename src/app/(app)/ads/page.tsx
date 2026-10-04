@@ -26,9 +26,9 @@ function AdsPageInner() {
   const [filters, setFilters] = useState<AdFilters>({
     q: "",
     platform: "",
-    brand_id: searchParams.get("brand_id") ?? "",
-    theme: "",
-    ad_format: "",
+    brand_ids: searchParams.getAll("brand_id").filter(Boolean),
+    themes: [],
+    ad_formats: [],
     active_only: false,
     missing_copy: false,
     own: "",
@@ -47,9 +47,9 @@ function AdsPageInner() {
     const params = new URLSearchParams();
     if (filters.q) params.set("q", filters.q);
     if (filters.platform) params.set("platform", filters.platform);
-    if (filters.brand_id) params.set("brand_id", filters.brand_id);
-    if (filters.theme) params.set("theme", filters.theme);
-    if (filters.ad_format) params.set("ad_format", filters.ad_format);
+    for (const id of filters.brand_ids) params.append("brand_id", id);
+    for (const theme of filters.themes) params.append("theme", theme);
+    for (const format of filters.ad_formats) params.append("ad_format", format);
     if (filters.active_only) params.set("active_only", "true");
     if (filters.missing_copy) params.set("missing_copy", "true");
     if (filters.own) params.set("own", filters.own);
