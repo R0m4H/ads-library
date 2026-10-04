@@ -61,6 +61,14 @@ const SCREENS: Screen[] = [
   { name: "dashboard", path: "/", mocked: false, screenshot: false },
 ];
 
+// Supabase rotates its tokens: the app refreshes the session while a test runs, and the old
+// refresh token stops working afterwards. Save the refreshed cookies back so the session
+// from `npm run e2e:login` keeps working across runs. (Signed-out tests have no cookies; skip.)
+test.afterEach(async ({ context }) => {
+  const state = await context.storageState();
+  if (state.cookies.length > 0) await context.storageState({ path: "e2e/.auth/state.json" });
+});
+
 async function settle(page: Page) {
   await page.waitForLoadState("networkidle").catch(() => {});
   await expect(page.getByText("Loading…")).toHaveCount(0, { timeout: 20_000 });
