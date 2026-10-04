@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { AdWithBrand, Brand, ThemeRule } from "@/lib/types";
 import { AdCard } from "@/components/AdCard";
 import { FiltersBar, type AdFilters } from "@/components/FiltersBar";
+import { SingleSelect } from "@/components/MultiSelect";
 
 export default function AdsPage() {
   return (
@@ -91,20 +92,17 @@ function AdsPageInner() {
           <h1 className="text-xl font-semibold">Ad Library</h1>
           <p className="text-sm text-neutral-500">{total} ad{total === 1 ? "" : "s"} matching your filters.</p>
         </div>
-        <label className="flex items-center gap-2 whitespace-nowrap text-sm text-neutral-500">
+        <div className="flex items-center gap-2 whitespace-nowrap text-sm text-neutral-500">
           Per page
-          <select
-            value={pageSize}
-            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-            className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
-          >
-            {[12, 24, 48, 96].map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-        </label>
+          <SingleSelect
+            compact
+            panelWidth={96}
+            highlightChanged={false}
+            options={[12, 24, 48, 96].map((size) => ({ value: String(size), label: String(size) }))}
+            value={String(pageSize)}
+            onChange={(v) => handlePageSizeChange(Number(v))}
+          />
+        </div>
       </div>
 
       <FiltersBar filters={filters} onChange={handleFilterChange} brands={brands} themes={themes} />

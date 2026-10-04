@@ -51,6 +51,30 @@ const SCREENS: Screen[] = [
       await page.getByRole("option", { name: "Only competitors" }).waitFor();
     },
   },
+  {
+    name: "ad-library-per-page-open",
+    path: "/ads",
+    run: async (page) => {
+      await page.getByRole("button", { name: "24", exact: true }).click();
+      await page.getByRole("option", { name: "96" }).waitFor();
+    },
+  },
+  {
+    name: "ad-detail-add-theme-open",
+    path: "/ads/ad-0",
+    run: async (page) => {
+      await page.getByRole("button", { name: "+ Add theme…" }).click();
+      await page.getByRole("option").first().waitFor();
+    },
+  },
+  {
+    name: "team-role-open",
+    path: "/team",
+    run: async (page) => {
+      await page.getByRole("button", { name: "viewer", exact: true }).first().click();
+      await page.getByRole("option", { name: "owner" }).waitFor();
+    },
+  },
   { name: "brands", path: "/brands" },
   {
     name: "brands-add-form-open",
@@ -194,6 +218,33 @@ test("ad library: the yours/competitors dropdown picks one option and sends it",
   await page.getByRole("button", { name: "Only yours" }).click();
   await page.getByRole("option", { name: "Yours + competitors" }).click();
   await expect.poll(() => adRequests.at(-1)?.searchParams.get("own")).toBe(null);
+});
+
+test("ad library: per-page dropdown changes the page size", async ({ page }) => {
+  await installMocks(page);
+  const adRequests: URL[] = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    if (u.pathname === "/api/ads") adRequests.push(u);
+  });
+  await page.goto("/ads");
+  await settle(page);
+  await page.getByRole("button", { name: "24", exact: true }).click();
+  await page.getByRole("option", { name: "48" }).click();
+  await expect(page.getByRole("button", { name: "48", exact: true })).toBeVisible();
+  await expect.poll(() => adRequests.at(-1)?.searchParams.get("page_size")).toBe("48");
+});
+
+test("themes: swapping an AI suggestion's theme from the dropdown", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/themes");
+  await settle(page);
+  await page.getByRole("button", { name: "Suggest tags for untagged ads" }).click();
+  const field = page.locator('input[class*="rounded-full"]').first();
+  await expect(field).toHaveValue("Deposits");
+  await page.getByRole("button", { name: "Swap to…" }).first().click();
+  await page.getByRole("option", { name: "Mortgage" }).click();
+  await expect(field).toHaveValue("Mortgage");
 });
 
 test.describe("login (signed out)", () => {

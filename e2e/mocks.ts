@@ -113,6 +113,19 @@ export const insights = {
   ],
 };
 
+export const suggestions = [0, 3].map((i) => ({
+  id: `ad-${i}`,
+  platform: "meta",
+  headline: ads[i].headline,
+  body: ads[i].body,
+  cta: ads[i].cta,
+  media: ads[i].media,
+  brandName: brands[i % brands.length].name,
+  suggestedTheme: i === 0 ? "Deposits" : "A brand new theme the AI invented",
+  isNewTheme: i !== 0,
+  reason: "Mentions savings rates, which matches the Deposits theme.",
+}));
+
 export const team = [
   { id: "u-owner", email: "owner@example.com", display_name: "Owner Person", role: "owner" },
   { id: "u-ed", email: "an.extremely.long.email.address.for.layout.testing@some-very-long-company-domain.example.com", display_name: null, role: "editor" },
@@ -142,6 +155,7 @@ export async function installMocks(page: Page) {
     const path = url.pathname;
     const method = req.method();
 
+    if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
     if (method !== "GET" && path !== "/api/analysis/insights") return json(route, { ok: true });
 
     if (path === "/api/brands") return json(route, { brands });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RoleGate } from "@/components/RoleGate";
+import { SingleSelect } from "@/components/MultiSelect";
 import { useCurrentUser } from "@/components/RoleProvider";
 import type { Role } from "@/lib/role";
 
@@ -73,18 +74,17 @@ export default function TeamPage() {
                 {m.id === userId ? (
                   <span className="shrink-0 whitespace-nowrap text-xs text-neutral-400">{m.role} (you)</span>
                 ) : (
-                  <select
-                    value={m.role}
-                    disabled={savingId === m.id}
-                    onChange={(e) => changeRole(m.id, e.target.value as Role)}
-                    className="shrink-0 rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="shrink-0">
+                    <SingleSelect
+                      compact
+                      panelWidth={128}
+                      highlightChanged={false}
+                      disabled={savingId === m.id}
+                      options={ROLE_OPTIONS.map((r) => ({ value: r, label: r }))}
+                      value={m.role}
+                      onChange={(v) => changeRole(m.id, v as Role)}
+                    />
+                  </div>
                 )}
               </div>
             ))}

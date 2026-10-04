@@ -8,6 +8,7 @@ import type { AdMedia, Platform, ThemeRule } from "@/lib/types";
 import { ThemeRuleCard } from "@/components/ThemeRuleCard";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { RoleGate } from "@/components/RoleGate";
+import { SingleSelect } from "@/components/MultiSelect";
 
 function parseKeywords(input: string): string[] {
   return input
@@ -256,18 +257,14 @@ export default function ThemesPage() {
                       <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">new</span>
                     )}
                     {themes.length > 0 && (
-                      <select
+                      <SingleSelect
+                        compact
+                        placeholder="Swap to…"
+                        panelWidth={224}
+                        options={themes.map((t) => ({ value: t.name, label: t.name }))}
                         value=""
-                        onChange={(e) => e.target.value && setSuggestionTheme(s.id, e.target.value)}
-                        className="rounded-md border border-neutral-300 px-1.5 py-1 text-xs text-neutral-500"
-                      >
-                        <option value="">Swap to…</option>
-                        {themes.map((t) => (
-                          <option key={t.id} value={t.name}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(v) => v && setSuggestionTheme(s.id, v)}
+                      />
                     )}
                   </div>
                   {s.reason && <p className="mt-1 text-xs text-neutral-400">{s.reason}</p>}

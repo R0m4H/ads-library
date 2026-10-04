@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import type { ThemeRule } from "@/lib/types";
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "./RoleProvider";
+import { SingleSelect } from "./MultiSelect";
 
 export function ThemeTagEditor({
   adId,
@@ -82,19 +83,15 @@ export function ThemeTagEditor({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {available.length > 0 && (
-          <select
-            value=""
-            onChange={(e) => add(e.target.value)}
+          <SingleSelect
+            compact
+            placeholder="+ Add theme…"
+            panelWidth={224}
             disabled={saving}
-            className="rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600"
-          >
-            <option value="">+ Add theme…</option>
-            {available.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+            options={available.map((name) => ({ value: name, label: name }))}
+            value=""
+            onChange={(v) => v && add(v)}
+          />
         )}
         <form
           onSubmit={(e) => {

@@ -22,6 +22,10 @@ export function MultiSelect({
   value,
   onChange,
   single = false,
+  compact = false,
+  disabled = false,
+  panelWidth = 288,
+  highlightChanged = true,
 }: {
   /** Trigger text when nothing is ticked, e.g. "All brands". */
   allLabel: string;
@@ -32,6 +36,13 @@ export function MultiSelect({
   onChange: (value: string[]) => void;
   /** Pick exactly one option; choosing closes the list. Used by `SingleSelect`. */
   single?: boolean;
+  /** Smaller text and padding, for controls that sit inside a card or a row. */
+  compact?: boolean;
+  disabled?: boolean;
+  /** Width of the open list in px. */
+  panelWidth?: number;
+  /** In single mode: outline the button when something other than the first option is chosen. */
+  highlightChanged?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -39,8 +50,6 @@ export function MultiSelect({
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
-
-  const PANEL_WIDTH = 288; // keep in sync with w-72 below
 
   useEffect(() => {
     if (!open) return;
@@ -65,7 +74,7 @@ export function MultiSelect({
     if (!open && buttonRef.current) {
       // Open towards the left instead if the panel would run off the right edge of the screen.
       const left = buttonRef.current.getBoundingClientRect().left;
-      setAlignRight(left + PANEL_WIDTH > window.innerWidth - 8);
+      setAlignRight(left + panelWidth > window.innerWidth - 8);
       setQuery("");
     }
     setOpen((o) => !o);
@@ -82,7 +91,7 @@ export function MultiSelect({
   }
 
   // In single mode the first option is the default ("everything"), so only a different pick is "active".
-  const isActive = single ? value.length > 0 && value[0] !== options[0]?.value : value.length > 0;
+  const isActive = single ? highlightChanged && value.length > 0 && value[0] !== options[0]?.value : value.length > 0;
 
   const summary =
     value.length === 0
@@ -115,25 +124,30 @@ export function MultiSelect({
         ref={buttonRef}
         type="button"
         onClick={toggleOpen}
+        disabled={disabled}
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         className={clsx(
-          "relative flex max-w-full min-w-0 items-center rounded-md border bg-white py-2 pl-3 pr-9 text-left text-sm focus:outline-none focus-visible:border-bog",
+          "relative flex max-w-full min-w-0 items-center rounded-md border bg-white text-left focus:outline-none focus-visible:border-bog disabled:cursor-not-allowed disabled:opacity-50",
+          compact ? "py-1 pl-2 pr-7 text-xs" : "py-2 pl-3 pr-9 text-sm",
           isActive ? "border-bog text-neutral-900" : "border-neutral-300 text-neutral-900"
         )}
       >
         <span className="min-w-0 max-w-[16rem] truncate">{summary}</span>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+        <ChevronDown
+          className={clsx("pointer-events-none absolute top-1/2 -translate-y-1/2 text-neutral-500", compact ? "right-2 h-3.5 w-3.5" : "right-3 h-4 w-4")}
+        />
       </button>
 
       {open && (
         <div
           id={panelId}
           className={clsx(
-            "absolute top-full z-30 mt-1 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg",
+            "absolute top-full z-30 mt-1 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg",
             alignRight ? "right-0" : "left-0"
           )}
+          style={{ width: panelWidth }}
         >
           {showSearch && (
             <div className="relative border-b border-neutral-100 p-2">
@@ -164,7 +178,8 @@ export function MultiSelect({
                       aria-selected={value.includes(o.value)}
                       onClick={() => chooseOne(o.value)}
                       className={clsx(
-                        "block w-full rounded-md px-2 py-1.5 text-left text-sm",
+                        "block w-full rounded-md px-2 py-1.5 text-left",
+                        compact ? "text-xs" : "text-sm",
                         // No check marks: one option is always chosen (the first is "everything").
                         // The current one is simply shown highlighted.
                         value.includes(o.value) ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-800 hover:bg-neutral-50"
@@ -215,19 +230,38 @@ export function SingleSelect({
   options,
   value,
   onChange,
+  placeholder,
+  compact,
+  disabled,
+  panelWidth,
+  highlightChanged,
 }: {
   options: MultiSelectOption[];
   value: string;
   onChange: (value: string) => void;
+  /**
+   * Turns it into an action menu ("Swap to…", "+ Add theme…"): the button always shows this text,
+   * and picking an option just reports it without becoming the displayed value.
+   */
+  placeholder?: string;
+  compact?: boolean;
+  disabled?: boolean;
+  panelWidth?: number;
+  /** Outline the button when something other than the first option is chosen (default true). */
+  highlightChanged?: boolean;
 }) {
   return (
     <MultiSelect
       single
-      allLabel={options[0]?.label ?? ""}
+      allLabel={placeholder ?? options[0]?.label ?? ""}
       noun=""
       options={options}
-      value={[value]}
+      value={placeholder ? [] : [value]}
       onChange={(v) => onChange(v[0] ?? options[0]?.value ?? "")}
+      compact={compact}
+      disabled={disabled}
+      panelWidth={panelWidth}
+      highlightChanged={placeholder ? false : highlightChanged}
     />
   );
 }
