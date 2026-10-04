@@ -20,6 +20,18 @@ export async function GET(req: Request) {
   const page = Number(searchParams.get("page") ?? "0");
   const pageSize = Math.min(96, Math.max(6, Number(searchParams.get("page_size")) || 24));
 
+  // "Only yours" / "Only competitors" has to narrow the query itself (not the page afterwards), or the
+  // count, the page numbers and the page contents all disagree. Resolve it to a brand list first and
+  // intersect it with any brands the user picked.
+  let scopedBrandIds = brandIds;
+  if (ownOnly === "own" || ownOnly === "competitors") {
+    const { data: matching, error: brandsError } = await supabase.from("brands").select("id").eq("is_own", ownOnly === "own");
+    if (brandsError) return NextResponse.json({ error: brandsError.message }, { status: 500 });
+    const allowed = (matching ?? []).map((b) => b.id as string);
+    scopedBrandIds = brandIds.length > 0 ? brandIds.filter((id) => allowed.includes(id)) : allowed;
+    if (scopedBrandIds.length === 0) return NextResponse.json({ ads: [], total: 0, page, pageSize });
+  }
+
   let query = supabase
     .from("ads")
     .select("*, brand:brands(id, name, is_own, logo_url, category)", { count: "exact" })
@@ -27,7 +39,7 @@ export async function GET(req: Request) {
     .range(page * pageSize, page * pageSize + pageSize - 1);
 
   if (platform) query = query.eq("platform", platform);
-  if (brandIds.length) query = query.in("brand_id", brandIds);
+  if (scopedBrandIds.length) query = query.in("brand_id", scopedBrandIds);
   if (adFormats.length) query = query.in("ad_format", adFormats);
 
   // Several themes mean "any of them". "No theme" can be mixed in: untagged OR any chosen theme.
@@ -49,10 +61,6 @@ export async function GET(req: Request) {
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  let ads = data ?? [];
-  if (ownOnly === "own") ads = ads.filter((a) => (a as unknown as { brand: { is_own: boolean } }).brand?.is_own);
-  if (ownOnly === "competitors")
-    ads = ads.filter((a) => !(a as unknown as { brand: { is_own: boolean } }).brand?.is_own);
-
+  const ads = data ?? [];
   return NextResponse.json({ ads, total: count ?? 0, page, pageSize });
 }
