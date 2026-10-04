@@ -211,7 +211,10 @@ export default function ThemesPage() {
             {suggestions.map((s) => {
               const media = s.media[0];
               return (
-              <div key={s.id} className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+              <div
+                key={s.id}
+                className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
+              >
                 <Link
                   href={`/ads/${s.id}`}
                   target="_blank"
@@ -236,20 +239,20 @@ export default function ThemesPage() {
                   )}
                 </Link>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                     <PlatformBadge platform={s.platform} />
-                    <p className="text-xs font-medium text-neutral-500">{s.brandName}</p>
+                    <p className="min-w-0 break-words text-xs font-medium text-neutral-500">{s.brandName}</p>
                   </div>
-                  {s.headline && <p className="mt-1 text-sm font-medium text-neutral-900">{s.headline}</p>}
-                  {s.body && <p className="mt-0.5 text-xs text-neutral-600">{s.body}</p>}
-                  {s.cta && <p className="mt-0.5 text-xs italic text-neutral-400">CTA: {s.cta}</p>}
+                  {s.headline && <p className="mt-1 break-words text-sm font-medium text-neutral-900">{s.headline}</p>}
+                  {s.body && <p className="mt-0.5 break-words text-xs text-neutral-600">{s.body}</p>}
+                  {s.cta && <p className="mt-0.5 break-words text-xs italic text-neutral-400">CTA: {s.cta}</p>}
                   {!s.headline && !s.body && !s.cta && <p className="mt-1 text-sm text-neutral-400">(no ad copy)</p>}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <input
                       value={s.suggestedTheme}
                       onChange={(e) => setSuggestionTheme(s.id, e.target.value)}
-                      className="w-40 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 focus:border-violet-400 focus:outline-none"
+                      className="w-40 max-w-full rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 focus:border-violet-400 focus:outline-none"
                     />
                     {themes.some((t) => t.name.toLowerCase() === s.suggestedTheme.trim().toLowerCase()) ? (
                       <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-neutral-500">existing</span>
@@ -267,9 +270,9 @@ export default function ThemesPage() {
                       />
                     )}
                   </div>
-                  {s.reason && <p className="mt-1 text-xs text-neutral-400">{s.reason}</p>}
+                  {s.reason && <p className="mt-1 break-words text-xs text-neutral-400">{s.reason}</p>}
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className="col-start-2 flex gap-2 sm:col-start-3 sm:row-start-1">
                   <button
                     onClick={() => acceptSuggestion(s)}
                     className="rounded-md bg-bog px-3 py-1.5 text-xs font-medium text-white hover:bg-bog-dark"

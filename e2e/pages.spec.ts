@@ -68,6 +68,15 @@ const SCREENS: Screen[] = [
     },
   },
   {
+    name: "themes-ai-suggestions-swap-open",
+    path: "/themes",
+    run: async (page) => {
+      await page.getByRole("button", { name: "Suggest tags for untagged ads" }).click();
+      await page.getByRole("button", { name: "Swap to…" }).first().click();
+      await page.getByRole("option").first().waitFor();
+    },
+  },
+  {
     name: "team-role-open",
     path: "/team",
     run: async (page) => {
