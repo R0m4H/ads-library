@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-// Sign-up is limited to this email domain. This is only a friendly early check — the real
-// enforcement is the database trigger in supabase/migrations/0012_restrict_signup_domains.sql.
+// Sign-up is open to this email domain, plus anyone an owner has invited on the Team page. The page
+// does not try to judge an address itself — the database decides (migrations 0012 and 0013) and this
+// only explains the refusal.
 const COMPANY_DOMAIN = "bog.ge";
 
 export default function LoginPage() {
@@ -34,7 +35,7 @@ export default function LoginPage() {
           // new people to Sign up without saying which of the two it was.
           setError(
             /invalid login credentials/i.test(error.message)
-              ? `Invalid login credentials. No account yet? Choose "Sign up" below and use your @${COMPANY_DOMAIN} email.`
+              ? `Invalid login credentials. No account yet? Choose "Sign up" below — use your @${COMPANY_DOMAIN} email, or the address an owner invited.`
               : error.message
           );
         } else {
@@ -43,10 +44,6 @@ export default function LoginPage() {
         }
       } else {
         const address = email.trim().toLowerCase();
-        if (!address.endsWith(`@${COMPANY_DOMAIN}`)) {
-          setError(`Sign-up is limited to @${COMPANY_DOMAIN} email addresses.`);
-          return;
-        }
         const { data, error } = await supabase.auth.signUp({
           email: address,
           password,
@@ -54,10 +51,11 @@ export default function LoginPage() {
           options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         });
         if (error) {
-          // The database rejects emails outside the approved domain with this generic error.
+          // The database rejects an address that is neither on the company domain nor invited with this
+          // generic error.
           setError(
             /database error saving new user/i.test(error.message)
-              ? `Couldn't create the account. Sign-up is limited to @${COMPANY_DOMAIN} email addresses.`
+              ? `Couldn't create the account. Use your @${COMPANY_DOMAIN} email, or ask an owner to invite the address you want to use.`
               : error.message
           );
         } else if (data.session) {
@@ -116,7 +114,7 @@ export default function LoginPage() {
         ) : (
           <>
         <p className="mb-6 text-sm text-neutral-500">
-          {mode === "sign-in" ? "Log in to your team's ad library." : `Create an account with your @${COMPANY_DOMAIN} email.`}
+          {mode === "sign-in" ? "Log in to your team's ad library." : `Use your @${COMPANY_DOMAIN} email, or the address you were invited with.`}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -132,6 +132,11 @@ export const team = [
   { id: "u-v", email: "viewer@example.com", display_name: "Viewer With A Pretty Long Display Name Indeed", role: "viewer" },
 ];
 
+export const invitations = [
+  { email: "colleague.on.gmail@gmail.com", role: "editor", created_at: daysAgo(1) },
+  { email: "a.contractor.with.a.really.long.address.name@some-long-company-name.example.org", role: "viewer", created_at: daysAgo(2) },
+];
+
 export const presets = [
   { id: "p1", label: "Quick", value: 50, sort_order: 1, created_at: NOW, updated_at: NOW },
   { id: "p2", label: "Standard", value: 200, sort_order: 2, created_at: NOW, updated_at: NOW },
@@ -155,6 +160,10 @@ export async function installMocks(page: Page) {
     const path = url.pathname;
     const method = req.method();
 
+    if (path === "/api/team/invitations" && method === "POST") {
+      const body = JSON.parse(req.postData() ?? "{}");
+      return json(route, { invitation: { email: String(body.email).trim().toLowerCase(), role: body.role ?? "viewer", created_at: NOW } });
+    }
     if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
     if (method !== "GET" && path !== "/api/analysis/insights") return json(route, { ok: true });
 
@@ -165,6 +174,7 @@ export async function installMocks(page: Page) {
     if (m) return json(route, { brand: brands.find((b) => b.id === m![1]) ?? brands[0] });
     if (path === "/api/themes") return json(route, { themes });
     if (path === "/api/sync-presets") return json(route, { presets });
+    if (path === "/api/team/invitations") return json(route, { invitations });
     if (path === "/api/team") return json(route, { members: team });
     if (path === "/api/analysis") return json(route, analysis);
     if (path === "/api/analysis/insights") return json(route, insights);

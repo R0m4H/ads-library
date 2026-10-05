@@ -256,6 +256,22 @@ test("themes: swapping an AI suggestion's theme from the dropdown", async ({ pag
   await expect(field).toHaveValue("Mortgage");
 });
 
+test("team: inviting an outside address lists it as waiting to sign up", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/team");
+  await settle(page);
+  await expect(page.getByText("colleague.on.gmail@gmail.com")).toBeVisible();
+
+  await page.getByLabel("Email address to invite").fill("New.Person@Gmail.com");
+  await page.getByRole("button", { name: "viewer", exact: true }).first().click();
+  await page.getByRole("option", { name: "editor" }).click();
+  await page.getByRole("button", { name: "Add invitation" }).click();
+
+  await expect(page.getByText("new.person@gmail.com can now sign up as editor")).toBeVisible();
+  await expect(page.getByLabel("Email address to invite")).toHaveValue("");
+  await expect(page.getByText("will join as editor")).toHaveCount(2);
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
