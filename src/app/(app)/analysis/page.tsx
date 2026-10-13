@@ -153,6 +153,9 @@ export default function AnalysisPage() {
     setInsightsLoading(false);
   }
 
+  const ownBrands = brands.filter((b) => b.is_own);
+  const competitorBrands = brands.filter((b) => !b.is_own);
+
   const rows = result?.brands.map((b) => ({ brand: b.brand, ...b.platforms[platformTab] })) ?? [];
   // A theme is shown if at least ONE selected brand has ads in it (in the current platform tab and
   // active-only setting). Only when every selected brand has 0 is it hidden, so a theme one brand
@@ -186,24 +189,33 @@ export default function AnalysisPage() {
       </div>
 
       <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-5">
-        <div>
-          <p className="mb-2 text-xs font-medium text-neutral-600">Brands to compare</p>
-          <div className="flex flex-wrap gap-1.5">
-            {brands.map((b) => (
-              <button
-                key={b.id}
-                onClick={() => toggleBrand(b.id)}
-                className={clsx(
-                  "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                  selected.includes(b.id) ? "bg-bog text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                )}
-              >
-                {b.is_own ? "★ " : ""}
-                {b.name}
-              </button>
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-neutral-600">Brands to compare</p>
+          {brands.length === 0 && <p className="text-sm text-neutral-400">No brands yet.</p>}
+          {[
+            { title: "Your pages", list: ownBrands },
+            { title: "Competitors", list: competitorBrands },
+          ]
+            .filter((group) => group.list.length > 0)
+            .map((group) => (
+              <div key={group.title}>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{group.title}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.list.map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => toggleBrand(b.id)}
+                      className={clsx(
+                        "max-w-full rounded-full px-3 py-1.5 text-left text-sm font-medium transition-colors",
+                        selected.includes(b.id) ? "bg-bog text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                      )}
+                    >
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
-            {brands.length === 0 && <p className="text-sm text-neutral-400">No brands yet.</p>}
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
