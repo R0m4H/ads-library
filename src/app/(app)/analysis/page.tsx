@@ -131,7 +131,7 @@ export default function AnalysisPage() {
     const payload = {
       platformLabel: PLATFORM_TABS.find((t) => t.key === platformTab)?.label ?? platformTab,
       activeOnly,
-      themes: result.themes,
+      themes: visibleThemes,
       brands: rows.map((r) => ({
         name: r.brand?.name ?? "Unknown",
         isOwn: r.brand?.is_own ?? false,
@@ -154,17 +154,23 @@ export default function AnalysisPage() {
   }
 
   const rows = result?.brands.map((b) => ({ brand: b.brand, ...b.platforms[platformTab] })) ?? [];
-  const chartLabels = result ? [...result.themes, "Untagged"] : [];
+  // A theme is shown if at least ONE selected brand has ads in it (in the current platform tab and
+  // active-only setting). Only when every selected brand has 0 is it hidden, so a theme one brand
+  // owns and another ignores still appears — with a 0 for the one that ignores it.
+  const allThemes = result?.themes ?? [];
+  const visibleThemes = allThemes.filter((t) => rows.some((r) => (r.themeCounts[t] ?? 0) > 0));
+  const hiddenThemeCount = allThemes.length - visibleThemes.length;
+  const chartLabels = result ? [...visibleThemes, "Untagged"] : [];
   const chartSeries = rows.map((r, i) => ({
     name: r.brand?.name ?? "Unknown",
     color: BRAND_COLORS[i % BRAND_COLORS.length],
-    data: [...(result?.themes ?? []).map((t) => r.themeCounts[t] ?? 0), r.untagged],
+    data: [...visibleThemes.map((t) => r.themeCounts[t] ?? 0), r.untagged],
   }));
 
   // Radar: each theme axis normalized 0-100 against the category leader
   // among the selected brands, same convention as a typical share-of-voice
   // competitive radar.
-  const radarThemes = result?.themes ?? [];
+  const radarThemes = visibleThemes;
   const maxByTheme = Object.fromEntries(radarThemes.map((t) => [t, Math.max(1, ...rows.map((r) => r.themeCounts[t] ?? 0))]));
   const radarSeries = rows.map((r, i) => ({
     name: r.brand?.name ?? "Unknown",
@@ -267,9 +273,20 @@ export default function AnalysisPage() {
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-white p-5">
-            <h2 className="mb-4 text-sm font-semibold text-neutral-700">Ads by theme</h2>
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-neutral-700">Ads by theme</h2>
+              {hiddenThemeCount > 0 && (
+                <p className="mt-0.5 text-xs text-neutral-400">
+                  {hiddenThemeCount} {hiddenThemeCount === 1 ? "theme" : "themes"} with no ads for the selected brands {hiddenThemeCount === 1 ? "is" : "are"} hidden.
+                </p>
+              )}
+            </div>
             {chartLabels.length <= 1 ? (
-              <p className="text-sm text-neutral-400">No themes defined yet — add some on the Themes page.</p>
+              <p className="text-sm text-neutral-400">
+                {allThemes.length === 0
+                  ? "No themes defined yet — add some on the Themes page."
+                  : "None of your themes have ads for the selected brands."}
+              </p>
             ) : (
               <ThemeComparisonChart labels={chartLabels} series={chartSeries} />
             )}
@@ -279,7 +296,11 @@ export default function AnalysisPage() {
             <h2 className="mb-1 text-sm font-semibold text-neutral-700">Competitive radar</h2>
             <p className="mb-4 text-xs text-neutral-400">Each theme axis normalized 0-100 against whichever brand leads it.</p>
             {radarThemes.length < 3 ? (
-              <p className="text-sm text-neutral-400">Define at least 3 themes to get a useful radar comparison.</p>
+              <p className="text-sm text-neutral-400">
+                {allThemes.length < 3
+                  ? "Define at least 3 themes to get a useful radar comparison."
+                  : "The radar needs at least 3 themes that have ads for the selected brands."}
+              </p>
             ) : (
               <RadarComparisonChart labels={radarThemes} series={radarSeries} />
             )}
@@ -298,7 +319,7 @@ export default function AnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...(result.themes ?? []), "Untagged"].map((theme) => (
+                {[...visibleThemes, "Untagged"].map((theme) => (
                   <tr key={theme} className="border-b border-neutral-100 last:border-0">
                     <td className="px-4 py-2 font-medium text-neutral-700">{theme}</td>
                     {rows.map((r, i) => (

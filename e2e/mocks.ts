@@ -81,7 +81,8 @@ const bucket = (total: number, active: number, untagged: number, counts: Record<
 const themeNames = themes.map((t) => t.name);
 
 export const analysis = {
-  themes: themeNames,
+  // The last theme has 0 ads for every brand — the Analysis tab should hide it.
+  themes: [...themeNames, "Theme nobody uses"],
   brands: brands.slice(0, 3).map((b, i) => {
     const counts = Object.fromEntries(themeNames.map((n, j) => [n, (i * 7 + j * 3) % 11]));
     const hl: [string, number][] = [
@@ -176,7 +177,12 @@ export async function installMocks(page: Page) {
     if (path === "/api/sync-presets") return json(route, { presets });
     if (path === "/api/team/invitations") return json(route, { invitations });
     if (path === "/api/team") return json(route, { members: team });
-    if (path === "/api/analysis") return json(route, analysis);
+    if (path === "/api/analysis") {
+      // Only the brands that were asked for, like the real endpoint.
+      const wanted = (url.searchParams.get("brand_ids") ?? "").split(",").filter(Boolean);
+      const chosen = wanted.length ? analysis.brands.filter((b) => wanted.includes(b.brand.id)) : analysis.brands;
+      return json(route, { ...analysis, brands: chosen });
+    }
     if (path === "/api/analysis/insights") return json(route, insights);
     m = path.match(/^\/api\/ads\/([^/]+)$/);
     if (m) return json(route, { ad: ads.find((a) => a.id === m![1]) ?? ads[0] });

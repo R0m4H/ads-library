@@ -272,6 +272,29 @@ test("team: inviting an outside address lists it as waiting to sign up", async (
   await expect(page.getByText("will join as editor")).toHaveCount(2);
 });
 
+test("analysis: a theme is hidden only when every selected brand has 0 ads in it", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/analysis");
+  await settle(page);
+
+  // First brand only. In the mock data it has 0 ads in "სამომხმარებლო სესხი" and in "Theme nobody uses".
+  await page.getByRole("button", { name: /Bank of Georgia Business/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(page.getByText("Ads by theme")).toBeVisible();
+  const table = page.locator("table").first();
+  await expect(table.getByText("Theme nobody uses")).toHaveCount(0);
+  await expect(table.getByText("სამომხმარებლო სესხი")).toHaveCount(0);
+  await expect(table.getByText("Deposits")).toBeVisible();
+  await expect(page.getByText("2 themes with no ads for the selected brands are hidden.")).toBeVisible();
+
+  // Add a second brand that has ads there: the theme comes back (with a 0 for the first brand).
+  await page.getByRole("button", { name: /^TBC$/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(table.getByText("სამომხმარებლო სესხი")).toBeVisible();
+  await expect(table.getByText("Theme nobody uses")).toHaveCount(0);
+  await expect(page.getByText("1 theme with no ads for the selected brands is hidden.")).toBeVisible();
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
