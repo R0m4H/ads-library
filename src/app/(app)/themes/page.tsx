@@ -41,6 +41,8 @@ export default function ThemesPage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [retagging, setRetagging] = useState(false);
   const [retagResult, setRetagResult] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const [repairResult, setRepairResult] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
@@ -109,6 +111,38 @@ export default function ThemesPage() {
       res.ok ? `Checked ${json.total} ads — ${json.changed} updated${json.skipped ? `, ${json.skipped} kept (themes set by hand)` : ""}, ${json.tagged} match at least one theme.` : (json.error?.toString() ?? "Failed")
     );
     setRetagging(false);
+  }
+
+  // Rebuilds headlines/bodies that were saved as blank spaces (older carousels) from the data we kept.
+  // The server does one batch per call, so keep calling until nothing is left.
+  async function repairCopy() {
+    setRepairing(true);
+    setRepairResult("Working…");
+    let repaired = 0;
+    let cleared = 0;
+    try {
+      for (let round = 0; round < 60; round++) {
+        const res = await fetch("/api/ads/repair-copy", { method: "POST" });
+        const json = await res.json();
+        if (!res.ok) {
+          setRepairResult(`Stopped after fixing ${repaired}: ${json.error?.toString() ?? "failed"}`);
+          return;
+        }
+        repaired += json.repaired ?? 0;
+        cleared += json.cleared ?? 0;
+        if (!json.remaining) break;
+        setRepairResult(`Working… ${repaired + cleared} done, ${json.remaining} to go`);
+      }
+      setRepairResult(
+        repaired + cleared === 0
+          ? "No blank copy found."
+          : `Fixed ${repaired} ads${cleared ? `; ${cleared} had no text to recover and ${cleared === 1 ? "was" : "were"} cleared` : ""}.`
+      );
+    } catch {
+      setRepairResult("Could not reach the server. Try again.");
+    } finally {
+      setRepairing(false);
+    }
   }
 
   async function suggestTags() {
@@ -183,6 +217,15 @@ export default function ThemesPage() {
             {retagging ? "Re-tagging…" : "Re-tag all ads"}
           </button>
           {retagResult && <p className="max-w-[220px] text-right text-xs text-neutral-500">{retagResult}</p>}
+          <button
+            onClick={repairCopy}
+            disabled={repairing}
+            title="Rebuilds headlines and text that were saved as blank, using the data we kept for each ad. Ads left without any tag also get tagged."
+            className="mt-1 whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+          >
+            {repairing ? "Fixing…" : "Fix blank ad copy"}
+          </button>
+          {repairResult && <p className="max-w-[220px] text-right text-xs text-neutral-500">{repairResult}</p>}
         </div>
       </div>
 

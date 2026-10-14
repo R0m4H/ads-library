@@ -67,6 +67,7 @@ const SCREENS: Screen[] = [
       await page.getByRole("option").first().waitFor();
     },
   },
+  { name: "ad-detail-expired-preview", path: "/ads/ad-5" },
   {
     name: "ad-detail-add-theme-open",
     path: "/ads/ad-0",
@@ -381,6 +382,30 @@ test("ad library: adding a theme from a card saves it without opening the ad", a
   expect(patches).toHaveLength(1);
   expect(patches[0].url).toContain("/api/ads/ad-1");
   expect(patches[0].body.theme_tags).toEqual(["Deposits"]);
+});
+
+test("ad library: an ad whose image link has expired shows a clear placeholder instead of a blank gap", async ({ page }) => {
+  await installMocks(page);
+  const deadRequests: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("scontent.example.invalid")) deadRequests.push(r.url());
+  });
+  await page.goto("/ads");
+  await settle(page);
+
+  const card = page.locator('a[href="/ads/ad-5"]');
+  await expect(card.getByText("Preview expired")).toBeVisible();
+  // Other ads still show their pictures, and the dead link is never even requested.
+  await expect(page.getByText("Preview expired")).toHaveCount(1);
+  expect(deadRequests).toHaveLength(0);
+});
+
+test("themes: 'Fix blank ad copy' runs the repair and reports what it did", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/themes");
+  await settle(page);
+  await page.getByRole("button", { name: "Fix blank ad copy" }).click();
+  await expect(page.getByText("Fixed 3 ads; 1 had no text to recover and was cleared.")).toBeVisible();
 });
 
 test.describe("login (signed out)", () => {

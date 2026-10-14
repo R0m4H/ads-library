@@ -11,6 +11,7 @@ import { daysSince, formatDate, youtubeEmbedUrl } from "@/lib/format";
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "@/components/RoleProvider";
 import { getListUrl } from "@/lib/adsListState";
+import { PreviewImage, PreviewVideo } from "@/components/MediaPreview";
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -71,8 +72,13 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           {ad.media.map((m, i) => {
             if (m.type !== "video") {
               return (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={m.url} alt={ad.headline ?? "Ad creative"} className="w-full rounded-xl object-cover" />
+                <PreviewImage
+                  key={i}
+                  src={m.url}
+                  alt={ad.headline ?? "Ad creative"}
+                  className="w-full rounded-xl object-cover"
+                  placeholderClassName="aspect-square rounded-xl"
+                />
               );
             }
             const embedUrl = youtubeEmbedUrl(m.url);
@@ -87,7 +93,15 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                 />
               );
             }
-            return <video key={i} src={m.url} controls poster={m.thumbnail_url} className="w-full rounded-xl bg-black" />;
+            return (
+              <PreviewVideo
+                key={i}
+                src={m.url}
+                poster={m.thumbnail_url}
+                className="w-full rounded-xl bg-black"
+                placeholderClassName="aspect-video rounded-xl"
+              />
+            );
           })}
         </div>
 

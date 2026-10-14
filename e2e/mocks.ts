@@ -37,7 +37,7 @@ export const themes = [
 ];
 
 type Fmt = "image" | "video" | "carousel" | null;
-function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; headline: string | null; body: string | null; cta: string | null; active: boolean; tags: string[]; media: boolean; manual: boolean }> = {}) {
+function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; headline: string | null; body: string | null; cta: string | null; active: boolean; tags: string[]; media: boolean; manual: boolean; expiredMedia: boolean }> = {}) {
   const b = brands[o.brand ?? i % brands.length];
   const fmt: Fmt = o.fmt === undefined ? "image" : o.fmt;
   return {
@@ -49,7 +49,8 @@ function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; h
     headline: o.headline === undefined ? `Headline number ${i}` : o.headline,
     body: o.body === undefined ? "Short body copy for the ad." : o.body,
     cta: o.cta === undefined ? "Learn more" : o.cta,
-    media: o.media === false ? [] : [fmt === "video" ? { type: "video", url: "https://example.invalid/v.mp4", thumbnail_url: svg("video", "#334155") } : { type: "image", url: svg(`creative ${i}`, i % 2 ? "#0a1628" : "#ff5a00") }],
+    // A Facebook-style signed link whose oe= expiry (1973) is long past.
+    media: o.expiredMedia ? [{ type: "image", url: "https://scontent.example.invalid/v/t39/expired.jpg?oe=5F5E100&oh=abc" }] : o.media === false ? [] : [fmt === "video" ? { type: "video", url: "https://example.invalid/v.mp4", thumbnail_url: svg("video", "#334155") } : { type: "image", url: svg(`creative ${i}`, i % 2 ? "#0a1628" : "#ff5a00") }],
     landing_url: "https://example.com/landing",
     source_url: `https://www.facebook.com/ads/library/?id=${i}`,
     theme_tags: o.tags ?? ["Deposits"],
@@ -71,7 +72,7 @@ export const ads = [
   ad(2, { brand: 2, platform: "google", fmt: "carousel", headline: "Short", body: "Carousel body copy", tags: ["Mortgage"] }),
   ad(3, { brand: 0, platform: "linkedin", headline: null, body: null, cta: null, media: false, tags: [] }),
   ad(4, { brand: 3, platform: "meta", active: false, headline: "Inactive ad with a normal headline", tags: ["Deposits"] }),
-  ad(5, { brand: 1, platform: "meta", headline: "Averyveryveryveryverylongsingleworddoesnotbreakanywhereandkeepsgoingandgoing", body: "Averyveryveryveryverylongsingleworddoesnotbreakanywhereandkeepsgoingandgoing", tags: ["Deposits"] }),
+  ad(5, { brand: 1, platform: "meta", expiredMedia: true, headline: "Averyveryveryveryverylongsingleworddoesnotbreakanywhereandkeepsgoingandgoing", body: "Averyveryveryveryverylongsingleworddoesnotbreakanywhereandkeepsgoingandgoing", tags: ["Deposits"] }),
   ad(6, { brand: 2, platform: "google", headline: "სამომხმარებლო სესხი 0% პირველ თვეებში", body: "მიიღე სესხი რამდენიმე წუთში, ონლაინ, ფილიალში მისვლის გარეშე.", cta: "მიიღე სესხი", tags: ["სამომხმარებლო სესხი"] }),
   ad(7, { brand: 0, platform: "meta", headline: "Open a deposit", body: "Grow your savings with competitive rates.", tags: ["Deposits", "სამომხმარებლო სესხი"] }),
 ];
@@ -167,6 +168,8 @@ export async function installMocks(page: Page) {
       return json(route, { invitation: { email: String(body.email).trim().toLowerCase(), role: body.role ?? "viewer", created_at: NOW } });
     }
     if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
+    if (path === "/api/ads/repair-copy") return json(route, { repaired: 3, cleared: 1, remaining: 0 });
+
     // Editing an ad's themes: by hand marks it; handing it back re-tags it from the rules.
     const adPatch = path.match(/^\/api\/ads\/([^/]+)$/);
     if (adPatch && method === "PATCH") {

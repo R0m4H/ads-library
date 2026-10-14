@@ -9,6 +9,7 @@ import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "./RoleProvider";
 import { PlatformBadge } from "./PlatformBadge";
 import { SingleSelect } from "./MultiSelect";
+import { PreviewImage } from "./MediaPreview";
 
 export function AdCard({
   ad,
@@ -75,14 +76,12 @@ export function AdCard({
           media.type === "video" ? (
             <div className="flex h-full w-full items-center justify-center bg-neutral-900">
               {media.thumbnail_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={media.thumbnail_url} alt="" className="h-full w-full object-cover opacity-80" />
+                <PreviewImage src={media.thumbnail_url} alt="" className="h-full w-full object-cover opacity-80" />
               ) : null}
               <PlayCircle className="absolute h-10 w-10 text-white drop-shadow" />
             </div>
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={media.url} alt={ad.headline ?? "Ad creative"} className="h-full w-full object-cover" />
+            <PreviewImage src={media.url} alt={ad.headline ?? "Ad creative"} className="h-full w-full object-cover" />
           )
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-neutral-400">No media</div>
