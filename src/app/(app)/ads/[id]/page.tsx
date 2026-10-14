@@ -175,6 +175,8 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
               adId={ad.id}
               tags={ad.theme_tags}
               onChange={(tags) => setAd((prev) => (prev ? { ...prev, theme_tags: tags } : prev))}
+              manual={ad.tags_manual}
+              onManualChange={(manual) => setAd((prev) => (prev ? { ...prev, tags_manual: manual } : prev))}
             />
           </div>
         </div>

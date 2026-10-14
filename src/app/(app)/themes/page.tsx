@@ -97,7 +97,7 @@ export default function ThemesPage() {
   async function retagAll() {
     if (
       !confirm(
-        "Re-tag ALL ads using your current theme rules? This overwrites every ad's theme tags — including any you edited manually — based on what matches now."
+        "Re-tag all ads using your current theme rules? Ads whose themes you set by hand are kept as they are; every other ad gets the tags your rules give it now."
       )
     )
       return;
@@ -106,7 +106,7 @@ export default function ThemesPage() {
     const res = await fetch("/api/themes/retag", { method: "POST" });
     const json = await res.json();
     setRetagResult(
-      res.ok ? `Checked ${json.total} ads — ${json.changed} updated, ${json.tagged} match at least one theme.` : (json.error?.toString() ?? "Failed")
+      res.ok ? `Checked ${json.total} ads — ${json.changed} updated${json.skipped ? `, ${json.skipped} kept (themes set by hand)` : ""}, ${json.tagged} match at least one theme.` : (json.error?.toString() ?? "Failed")
     );
     setRetagging(false);
   }

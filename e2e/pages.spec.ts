@@ -337,6 +337,22 @@ test("ad library: coming back from an ad returns to the same scroll position", a
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before - 40);
 });
 
+test("ad page: setting themes by hand shows the marker, and the undo link hands the ad back to the rules", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads/ad-1"); // an ad whose themes are automatic: no marker yet
+  await settle(page);
+  await expect(page.getByText("Set by hand")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "+ Add theme…" }).click();
+  await page.getByRole("option").first().click();
+  await expect(page.getByText("Set by hand")).toBeVisible();
+  await expect(page.getByText("Re-tagging skips this ad.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Use automatic tags again" }).click();
+  await expect(page.getByText("Set by hand")).toHaveCount(0);
+  await expect(page.getByText("Deposits").first()).toBeVisible(); // the rules' tags came back
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

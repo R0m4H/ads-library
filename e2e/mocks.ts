@@ -37,7 +37,7 @@ export const themes = [
 ];
 
 type Fmt = "image" | "video" | "carousel" | null;
-function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; headline: string | null; body: string | null; cta: string | null; active: boolean; tags: string[]; media: boolean }> = {}) {
+function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; headline: string | null; body: string | null; cta: string | null; active: boolean; tags: string[]; media: boolean; manual: boolean }> = {}) {
   const b = brands[o.brand ?? i % brands.length];
   const fmt: Fmt = o.fmt === undefined ? "image" : o.fmt;
   return {
@@ -53,6 +53,7 @@ function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; h
     landing_url: "https://example.com/landing",
     source_url: `https://www.facebook.com/ads/library/?id=${i}`,
     theme_tags: o.tags ?? ["Deposits"],
+    tags_manual: o.manual ?? false,
     spend_estimate: null,
     impressions_estimate: null,
     first_seen_at: daysAgo(3 + i),
@@ -65,7 +66,7 @@ function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; h
 }
 
 export const ads = [
-  ad(0, { brand: 0, platform: "meta", headline: "ჩაერთე გათამაშებაში და მოიგე გარანტირებული ბილეთები უკვე დღესვე, ახალი ბარათით", body: "🗝️ დააგროვე 5 გასაღები და გახსენი სკივრი, სადაც გათამაშების გარანტირებული 50 ბილეთი დაგხვდება. დამატებით შეიძლება დაგხვდეს 1 000 ბილეთი და სხვა სიურპრიზები.", tags: ["Cards & Everyday Payments With A Deliberately Overlong Theme Name", "Deposits", "Mortgage"] }),
+  ad(0, { brand: 0, platform: "meta", headline: "ჩაერთე გათამაშებაში და მოიგე გარანტირებული ბილეთები უკვე დღესვე, ახალი ბარათით", body: "🗝️ დააგროვე 5 გასაღები და გახსენი სკივრი, სადაც გათამაშების გარანტირებული 50 ბილეთი დაგხვდება. დამატებით შეიძლება დაგხვდეს 1 000 ბილეთი და სხვა სიურპრიზები.", tags: ["Cards & Everyday Payments With A Deliberately Overlong Theme Name", "Deposits", "Mortgage"], manual: true }),
   ad(1, { brand: 1, platform: "meta", fmt: "video", headline: "TBC", body: null, cta: null, tags: [] }),
   ad(2, { brand: 2, platform: "google", fmt: "carousel", headline: "Short", body: "Carousel body copy", tags: ["Mortgage"] }),
   ad(3, { brand: 0, platform: "linkedin", headline: null, body: null, cta: null, media: false, tags: [] }),
@@ -166,6 +167,14 @@ export async function installMocks(page: Page) {
       return json(route, { invitation: { email: String(body.email).trim().toLowerCase(), role: body.role ?? "viewer", created_at: NOW } });
     }
     if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
+    // Editing an ad's themes: by hand marks it; handing it back re-tags it from the rules.
+    const adPatch = path.match(/^\/api\/ads\/([^/]+)$/);
+    if (adPatch && method === "PATCH") {
+      const body = JSON.parse(req.postData() ?? "{}");
+      const base = ads.find((a) => a.id === adPatch[1]) ?? ads[0];
+      if (body.tags_manual === false) return json(route, { ad: { ...base, theme_tags: ["Deposits"], tags_manual: false } });
+      return json(route, { ad: { ...base, theme_tags: body.theme_tags ?? base.theme_tags, tags_manual: true } });
+    }
     if (method !== "GET" && path !== "/api/analysis/insights") return json(route, { ok: true });
 
     if (path === "/api/brands") return json(route, { brands });

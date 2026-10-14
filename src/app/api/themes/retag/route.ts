@@ -22,7 +22,7 @@ export async function POST() {
   for (let page = 0; ; page++) {
     const { data, error } = await supabase
       .from("ads")
-      .select("id, headline, body, cta, theme_tags")
+      .select("id, headline, body, cta, theme_tags, tags_manual")
       .range(page * pageSize, page * pageSize + pageSize - 1);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     ads.push(...((data as RetagAd[] | null) ?? []));
@@ -62,5 +62,5 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({ total: ads.length, tagged: plan.tagged, changed: plan.changed });
+  return NextResponse.json({ total: ads.length, tagged: plan.tagged, changed: plan.changed, skipped: plan.skipped });
 }

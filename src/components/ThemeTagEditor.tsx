@@ -11,10 +11,15 @@ export function ThemeTagEditor({
   adId,
   tags,
   onChange,
+  manual = false,
+  onManualChange,
 }: {
   adId: string;
   tags: string[];
   onChange: (tags: string[]) => void;
+  /** Themes were set by hand, so "Re-tag all ads" skips this ad. Only editors are shown this. */
+  manual?: boolean;
+  onManualChange?: (manual: boolean) => void;
 }) {
   const { role } = useCurrentUser();
   const readOnly = !canEdit(role);
@@ -31,12 +36,32 @@ export function ThemeTagEditor({
   async function save(next: string[]) {
     setSaving(true);
     onChange(next);
+    onManualChange?.(true); // saving themes by hand marks the ad (the server does the same)
     await fetch(`/api/ads/${adId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ theme_tags: next }),
     });
     setSaving(false);
+  }
+
+  // Hand the ad back to the automatic rules: the server re-tags it from the current rules right away.
+  async function useAutomatic() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/ads/${adId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags_manual: false }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ad) {
+        onChange(json.ad.theme_tags ?? []);
+        onManualChange?.(false);
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   function remove(tag: string) {
@@ -110,6 +135,20 @@ export function ThemeTagEditor({
           />
         </form>
       </div>
+      {manual && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">Set by hand</span>
+          <span>Re-tagging skips this ad.</span>
+          <button
+            type="button"
+            onClick={useAutomatic}
+            disabled={saving}
+            className="font-medium text-neutral-600 underline underline-offset-2 hover:text-neutral-900 disabled:opacity-50"
+          >
+            Use automatic tags again
+          </button>
+        </p>
+      )}
     </div>
   );
 }

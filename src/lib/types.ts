@@ -35,6 +35,8 @@ export interface Ad {
   landing_url: string | null;
   source_url: string | null;
   theme_tags: string[];
+  /** True once an editor set the themes by hand (or accepted an AI suggestion): "Re-tag all ads" skips it. */
+  tags_manual: boolean;
   spend_estimate: string | null;
   impressions_estimate: string | null;
   first_seen_at: string;
