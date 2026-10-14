@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Trash2 } from "lucide-react";
@@ -10,6 +10,7 @@ import { ThemeTagEditor } from "@/components/ThemeTagEditor";
 import { daysSince, formatDate, youtubeEmbedUrl } from "@/lib/format";
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "@/components/RoleProvider";
+import { getListUrl } from "@/lib/adsListState";
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,6 +18,13 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   const { role } = useCurrentUser();
   const [ad, setAd] = useState<AdWithBrand | null>(null);
   const [loading, setLoading] = useState(true);
+  // Back to the Ad Library as the user left it (filters, page), not a blank list. It comes from the
+  // browser tab's storage, so the server render (and first paint) uses plain /ads.
+  const backHref = useSyncExternalStore(
+    () => () => {},
+    getListUrl,
+    () => "/ads"
+  );
 
   useEffect(() => {
     fetch(`/api/ads/${id}`)
@@ -28,7 +36,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   async function remove() {
     if (!confirm("Delete this ad? This can't be undone (it'll come back if a future sync finds it again).")) return;
     const res = await fetch(`/api/ads/${id}`, { method: "DELETE" });
-    if (res.ok) router.push("/ads");
+    if (res.ok) router.push(backHref);
   }
 
   if (loading) return <p className="text-sm text-neutral-400">Loading…</p>;
@@ -39,7 +47,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <Link href="/ads" className="text-sm text-neutral-500 underline underline-offset-2">
+        <Link href={backHref} className="text-sm text-neutral-500 underline underline-offset-2">
           ← Back to Ad Library
         </Link>
         {canEdit(role) && (

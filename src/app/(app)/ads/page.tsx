@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AdWithBrand, Brand, ThemeRule } from "@/lib/types";
 import { AdCard } from "@/components/AdCard";
 import { FiltersBar, type AdFilters } from "@/components/FiltersBar";
 import { SingleSelect } from "@/components/MultiSelect";
+import { listUrlFor, readListState, saveListUrl, saveScroll, takeScroll } from "@/lib/adsListState";
 
 export default function AdsPage() {
   return (
@@ -17,23 +18,17 @@ export default function AdsPage() {
 
 function AdsPageInner() {
   const searchParams = useSearchParams();
+  // Filters, page and page size come from the address, so coming back from an ad restores them.
+  const [initial] = useState(() => readListState(new URLSearchParams(searchParams.toString())));
   const [brands, setBrands] = useState<Brand[]>([]);
   const [themes, setThemes] = useState<ThemeRule[]>([]);
   const [ads, setAds] = useState<AdWithBrand[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(24);
+  const [page, setPage] = useState(initial.page);
+  const [pageSize, setPageSize] = useState(initial.pageSize);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<AdFilters>({
-    q: "",
-    platform: "",
-    brand_ids: searchParams.getAll("brand_id").filter(Boolean),
-    themes: [],
-    ad_formats: [],
-    active_only: false,
-    missing_copy: false,
-    own: "",
-  });
+  const [filters, setFilters] = useState<AdFilters>(initial.filters);
+  const restoredScroll = useRef(false);
 
   useEffect(() => {
     fetch("/api/brands")
@@ -59,6 +54,14 @@ function AdsPageInner() {
     return params.toString();
   }, [filters, page, pageSize]);
 
+  // Keep the address in step with the filters (without adding history entries or re-rendering), and
+  // remember it so "Back to Ad Library" on an ad returns here.
+  const listUrl = useMemo(() => listUrlFor(query), [query]);
+  useEffect(() => {
+    window.history.replaceState(window.history.state, "", listUrl);
+    saveListUrl(listUrl);
+  }, [listUrl]);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       setLoading(true);
@@ -72,6 +75,14 @@ function AdsPageInner() {
     }, 250); // debounce free-text search
     return () => clearTimeout(timeout);
   }, [query]);
+
+  // Coming back from an ad: once the list is on screen again, scroll to where the user was.
+  useEffect(() => {
+    if (loading || ads.length === 0 || restoredScroll.current) return;
+    restoredScroll.current = true;
+    const y = takeScroll(listUrl);
+    if (y !== null) requestAnimationFrame(() => window.scrollTo(0, y));
+  }, [loading, ads.length, listUrl]);
 
   function handleFilterChange(f: AdFilters) {
     setPage(0);
@@ -114,7 +125,11 @@ function AdsPageInner() {
           No ads yet. Add a brand and hit Sync from the Brands page to pull in ads.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          // Before a click opens an ad, note where the list was scrolled to.
+          onClickCapture={() => saveScroll(listUrl, window.scrollY)}
+        >
           {ads.map((ad) => (
             <AdCard
               key={ad.id}

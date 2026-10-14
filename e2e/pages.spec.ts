@@ -295,6 +295,48 @@ test("analysis: a theme is hidden only when every selected brand has 0 ads in it
   await expect(page.getByText("1 theme with no ads for the selected brands is hidden.")).toBeVisible();
 });
 
+test("ad library: filters survive opening an ad and coming back", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads");
+  await settle(page);
+
+  await page.getByRole("button", { name: "All brands" }).click();
+  await page.getByLabel("TBC", { exact: true }).check();
+  await page.keyboard.press("Escape");
+  await page.getByPlaceholder("Search headline, body, CTA…").fill("loan");
+  await page.getByLabel("Active only").check();
+  await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe("loan");
+
+  await page.locator('a[href^="/ads/ad-"]').first().click();
+  await expect(page).toHaveURL(/\/ads\/ad-/);
+  await page.getByRole("link", { name: /Back to Ad Library/ }).click();
+
+  await expect(page).toHaveURL(/\/ads\?/);
+  const back = new URL(page.url()).searchParams;
+  expect(back.get("q")).toBe("loan");
+  expect(back.getAll("brand_id")).toHaveLength(1);
+  expect(back.get("active_only")).toBe("true");
+  await expect(page.getByPlaceholder("Search headline, body, CTA…")).toHaveValue("loan");
+  await expect(page.getByRole("button", { name: "TBC", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Active only")).toBeChecked();
+});
+
+test("ad library: coming back from an ad returns to the same scroll position", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads");
+  await settle(page);
+  await page.evaluate(() => window.scrollTo(0, 400));
+  const before = await page.evaluate(() => window.scrollY);
+  expect(before).toBeGreaterThan(300);
+
+  // dispatchEvent, not click(): click() would first scroll the card into view and move the page.
+  await page.locator('a[href^="/ads/ad-"]').nth(1).dispatchEvent("click");
+  await expect(page).toHaveURL(/\/ads\/ad-/);
+  await page.getByRole("link", { name: /Back to Ad Library/ }).click();
+  await expect(page.getByPlaceholder("Search headline, body, CTA…")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before - 40);
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
