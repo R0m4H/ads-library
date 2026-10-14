@@ -60,6 +60,14 @@ const SCREENS: Screen[] = [
     },
   },
   {
+    name: "ad-library-card-add-theme-open",
+    path: "/ads",
+    run: async (page) => {
+      await page.getByRole("button", { name: "+ Add theme…" }).nth(1).click();
+      await page.getByRole("option").first().waitFor();
+    },
+  },
+  {
     name: "ad-detail-add-theme-open",
     path: "/ads/ad-0",
     run: async (page) => {
@@ -351,6 +359,28 @@ test("ad page: setting themes by hand shows the marker, and the undo link hands 
   await page.getByRole("button", { name: "Use automatic tags again" }).click();
   await expect(page.getByText("Set by hand")).toHaveCount(0);
   await expect(page.getByText("Deposits").first()).toBeVisible(); // the rules' tags came back
+});
+
+test("ad library: adding a theme from a card saves it without opening the ad", async ({ page }) => {
+  await installMocks(page);
+  const patches: { url: string; body: { theme_tags?: string[] } }[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "PATCH" && /\/api\/ads\/ad-/.test(r.url())) patches.push({ url: r.url(), body: JSON.parse(r.postData() ?? "{}") });
+  });
+  await page.goto("/ads");
+  await settle(page);
+
+  // The second card (ad-1) has no themes yet.
+  const card = page.locator('a[href="/ads/ad-1"]');
+  await expect(card.getByText("Deposits")).toHaveCount(0);
+  await card.getByRole("button", { name: "+ Add theme…" }).click();
+  await page.getByRole("option", { name: "Deposits" }).click();
+
+  await expect(card.getByText("Deposits")).toBeVisible(); // shown on the card straight away
+  await expect(page).toHaveURL(/\/ads(\?|$)/); // and the ad did not open
+  expect(patches).toHaveLength(1);
+  expect(patches[0].url).toContain("/api/ads/ad-1");
+  expect(patches[0].body.theme_tags).toEqual(["Deposits"]);
 });
 
 test.describe("login (signed out)", () => {

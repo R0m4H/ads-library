@@ -134,6 +134,8 @@ function AdsPageInner() {
             <AdCard
               key={ad.id}
               ad={ad}
+              themes={themes}
+              onTagsChange={(id, tags) => setAds((prev) => prev.map((a) => (a.id === id ? { ...a, theme_tags: tags, tags_manual: true } : a)))}
               onDelete={(id) => {
                 setAds((prev) => prev.filter((a) => a.id !== id));
                 setTotal((t) => Math.max(0, t - 1));

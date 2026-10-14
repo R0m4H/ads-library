@@ -1,15 +1,51 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { PlayCircle, Trash2 } from "lucide-react";
-import type { AdWithBrand } from "@/lib/types";
+import type { AdWithBrand, ThemeRule } from "@/lib/types";
 import { daysSince, formatDate, truncate } from "@/lib/format";
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "./RoleProvider";
 import { PlatformBadge } from "./PlatformBadge";
+import { SingleSelect } from "./MultiSelect";
 
-export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: string) => void }) {
+export function AdCard({
+  ad,
+  onDelete,
+  themes = [],
+  onTagsChange,
+}: {
+  ad: AdWithBrand;
+  onDelete?: (id: string) => void;
+  /** All themes, for the editor-only "+ Add theme…" menu. */
+  themes?: ThemeRule[];
+  /** Called with the ad's new theme list after an editor adds a theme here. */
+  onTagsChange?: (id: string, tags: string[]) => void;
+}) {
   const { role } = useCurrentUser();
   const media = ad.media[0];
   const days = daysSince(ad.first_seen_at);
+  const [addingTheme, setAddingTheme] = useState(false);
+
+  // Editors and owners can add a theme straight from the card. Saving it by hand also marks the ad,
+  // so "Re-tag all ads" keeps it (the server does that).
+  async function addTheme(name: string) {
+    if (!name || ad.theme_tags.includes(name)) return;
+    setAddingTheme(true);
+    try {
+      const res = await fetch(`/api/ads/${ad.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme_tags: [...ad.theme_tags, name] }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ad) onTagsChange?.(ad.id, json.ad.theme_tags ?? [...ad.theme_tags, name]);
+    } finally {
+      setAddingTheme(false);
+    }
+  }
+  const availableThemes = themes.filter((t) => !ad.theme_tags.includes(t.name));
 
   async function remove(e: React.MouseEvent) {
     e.preventDefault();
@@ -22,7 +58,7 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
   return (
     <Link
       href={`/ads/${ad.id}`}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="group relative flex flex-col rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
     >
       {canEdit(role) && (
         <button
@@ -34,7 +70,7 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
         </button>
       )}
 
-      <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
+      <div className="relative aspect-square w-full overflow-hidden rounded-t-[11px] bg-neutral-100">
         {media ? (
           media.type === "video" ? (
             <div className="flex h-full w-full items-center justify-center bg-neutral-900">
@@ -88,12 +124,39 @@ export function AdCard({ ad, onDelete }: { ad: AdWithBrand; onDelete?: (id: stri
           </span>
         )}
 
-        <div className="mt-auto flex flex-wrap gap-1 pt-2">
+        <div className="mt-auto flex flex-wrap items-center gap-1 pt-2">
           {ad.theme_tags.slice(0, 2).map((tag) => (
             <span key={tag} className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
               {tag}
             </span>
           ))}
+          {ad.theme_tags.length > 2 && (
+            <span
+              title={ad.theme_tags.slice(2).join(", ")}
+              className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700"
+            >
+              +{ad.theme_tags.length - 2}
+            </span>
+          )}
+          {canEdit(role) && availableThemes.length > 0 && (
+            // The whole card is a link: swallow clicks here so choosing a theme doesn't open the ad.
+            <div
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <SingleSelect
+                compact
+                placeholder="+ Add theme…"
+                panelWidth={224}
+                disabled={addingTheme}
+                options={availableThemes.map((t) => ({ value: t.name, label: t.name }))}
+                value=""
+                onChange={addTheme}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-neutral-100 pt-2 text-xs text-neutral-400">
