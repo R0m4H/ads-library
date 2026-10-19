@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import clsx from "clsx";
-import type { Platform, ScrapeRun, SyncPreset } from "@/lib/types";
+import { DEFAULT_SYNC_ADS, MAX_SYNC_ADS, type Platform, type ScrapeRun, type SyncPreset } from "@/lib/types";
 
 export function SyncButton({
   brandId,
@@ -18,7 +18,7 @@ export function SyncButton({
 }) {
   const [status, setStatus] = useState<"idle" | "running" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const [limit, setLimit] = useState(200);
+  const [limit, setLimit] = useState(DEFAULT_SYNC_ADS);
   const [runId, setRunId] = useState<string | null>(null);
 
   // Returns true if the run reached a terminal state and the UI was updated.
@@ -112,11 +112,11 @@ export function SyncButton({
         <input
           type="number"
           min={1}
-          max={2000}
+          max={MAX_SYNC_ADS}
           value={limit}
           disabled={status === "running"}
-          onChange={(e) => setLimit(Math.max(1, Math.min(2000, Number(e.target.value) || 1)))}
-          className="w-16 rounded-md border border-neutral-300 px-1.5 py-1 text-xs disabled:bg-neutral-50"
+          onChange={(e) => setLimit(Math.max(1, Math.min(MAX_SYNC_ADS, Number(e.target.value) || 1)))}
+          className="w-20 rounded-md border border-neutral-300 px-1.5 py-1 text-xs disabled:bg-neutral-50"
         />
       </label>
       <button
@@ -139,6 +139,9 @@ export function SyncButton({
         >
           Stop
         </button>
+      )}
+      {limit > DEFAULT_SYNC_ADS && status !== "running" && (
+        <span className="text-xs text-amber-700">Over {DEFAULT_SYNC_ADS.toLocaleString()} ads: costs more and takes longer.</span>
       )}
       {message && <span className={clsx("text-xs", status === "error" ? "text-red-600" : "text-neutral-500")}>{message}</span>}
     </div>

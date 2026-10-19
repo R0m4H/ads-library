@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { SyncPreset } from "@/lib/types";
+import { MAX_SYNC_ADS, type SyncPreset } from "@/lib/types";
 
 export function SyncPresetsEditor({
   presets,
@@ -72,7 +72,7 @@ export function SyncPresetsEditor({
             <input
               type="number"
               min={1}
-              max={2000}
+              max={MAX_SYNC_ADS}
               defaultValue={p.value}
               onBlur={(e) => {
                 const value = Number(e.target.value);
@@ -96,7 +96,7 @@ export function SyncPresetsEditor({
         <input
           type="number"
           min={1}
-          max={2000}
+          max={MAX_SYNC_ADS}
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
           className="w-20 rounded-md border border-neutral-300 px-2 py-1 text-xs"

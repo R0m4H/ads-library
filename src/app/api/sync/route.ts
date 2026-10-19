@@ -3,13 +3,13 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { startActorRun } from "@/lib/apify/client";
 import { buildActorInput } from "@/lib/apify/normalize";
-import type { Platform } from "@/lib/types";
+import { DEFAULT_SYNC_ADS, MAX_SYNC_ADS, type Platform } from "@/lib/types";
 import { canEdit, getCurrentUserRole } from "@/lib/role";
 
 const bodySchema = z.object({
   brand_id: z.string().uuid(),
   platform: z.enum(["meta", "google", "linkedin"]),
-  limit: z.number().int().min(1).max(2000).default(200),
+  limit: z.number().int().min(1).max(MAX_SYNC_ADS).default(DEFAULT_SYNC_ADS),
 });
 
 const ACTOR_ENV: Record<Platform, string> = {

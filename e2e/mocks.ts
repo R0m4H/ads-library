@@ -168,6 +168,7 @@ export async function installMocks(page: Page) {
       return json(route, { invitation: { email: String(body.email).trim().toLowerCase(), role: body.role ?? "viewer", created_at: NOW } });
     }
     if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
+    if (path === "/api/sync" && method === "POST") return json(route, { run_id: "run-1" });
     if (path === "/api/ads/repair-copy") return json(route, { repaired: 3, cleared: 1, remaining: 0 });
 
     // Editing an ad's themes: by hand marks it; handing it back re-tags it from the rules.

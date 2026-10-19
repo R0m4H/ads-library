@@ -408,6 +408,28 @@ test("themes: 'Fix blank ad copy' runs the repair and reports what it did", asyn
   await expect(page.getByText("Fixed 3 ads; 1 had no text to recover and was cleared.")).toBeVisible();
 });
 
+test("brand page: the sync limit starts at 2000 and can be typed higher", async ({ page }) => {
+  await installMocks(page);
+  const syncBodies: { limit?: number }[] = [];
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname === "/api/sync" && r.method() === "POST") syncBodies.push(JSON.parse(r.postData() ?? "{}"));
+  });
+  await page.goto("/brands/brand-a");
+  await settle(page);
+
+  const max = page.locator('input[type="number"]').first();
+  await expect(max).toHaveValue("2000");
+  await expect(page.getByText("Over 2,000 ads")).toHaveCount(0);
+
+  await max.fill("5000");
+  await expect(max).toHaveValue("5000");
+  await expect(page.getByText("Over 2,000 ads: costs more and takes longer.").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Sync", exact: true }).first().click();
+  await expect.poll(() => syncBodies.length).toBe(1);
+  expect(syncBodies[0].limit).toBe(5000);
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

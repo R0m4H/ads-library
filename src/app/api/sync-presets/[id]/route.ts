@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { canEdit, getCurrentUserRole } from "@/lib/role";
+import { MAX_SYNC_ADS } from "@/lib/types";
 
 const updateSchema = z.object({
   label: z.string().min(1).optional(),
-  value: z.number().int().min(1).max(2000).optional(),
+  value: z.number().int().min(1).max(MAX_SYNC_ADS).optional(),
   sort_order: z.number().int().optional(),
 });
 

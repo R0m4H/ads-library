@@ -60,6 +60,11 @@ export interface ThemeRule {
   updated_at: string;
 }
 
+/** What a sync asks Meta/Google/LinkedIn for when you don't change the "Max" box. */
+export const DEFAULT_SYNC_ADS = 2000;
+/** The most a single sync may ask for — a guard against a typo costing a lot, not a recommendation. */
+export const MAX_SYNC_ADS = 10000;
+
 export interface SyncPreset {
   id: string;
   label: string;
