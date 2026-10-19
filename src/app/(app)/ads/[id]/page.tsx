@@ -12,6 +12,7 @@ import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "@/components/RoleProvider";
 import { getListUrl } from "@/lib/adsListState";
 import { PreviewImage, PreviewVideo } from "@/components/MediaPreview";
+import { SHAPE_LABEL, entryFor, savedImageSrc, savedVideoSrc, shapeOf } from "@/lib/adPreviews";
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -70,37 +71,49 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
             </div>
           )}
           {ad.media.map((m, i) => {
+            const entry = entryFor(ad, i);
+            const savedStill = entry ? savedImageSrc(ad.id, i) : undefined;
+            const savedVideo = entry?.video_key ? savedVideoSrc(ad.id, i) : undefined;
+            // When an ad has several versions (for example a vertical and a square one), say which is which.
+            const caption = ad.media.length > 1 && entry && entry.w && entry.h ? SHAPE_LABEL[shapeOf(entry.w, entry.h)] : null;
+
+            let body: React.ReactNode;
             if (m.type !== "video") {
-              return (
+              body = (
                 <PreviewImage
-                  key={i}
                   src={m.url}
+                  savedSrc={savedStill}
                   alt={ad.headline ?? "Ad creative"}
                   className="w-full rounded-xl object-cover"
                   placeholderClassName="aspect-square rounded-xl"
                 />
               );
-            }
-            const embedUrl = youtubeEmbedUrl(m.url);
-            if (embedUrl) {
-              return (
+            } else if (youtubeEmbedUrl(m.url)) {
+              body = (
                 <iframe
-                  key={i}
-                  src={embedUrl}
+                  src={youtubeEmbedUrl(m.url)!}
                   className="aspect-video w-full rounded-xl bg-black"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
               );
+            } else {
+              body = (
+                <PreviewVideo
+                  src={m.url}
+                  poster={m.thumbnail_url}
+                  savedVideo={savedVideo}
+                  savedStill={savedStill}
+                  className="w-full rounded-xl bg-black"
+                  placeholderClassName="aspect-video rounded-xl"
+                />
+              );
             }
             return (
-              <PreviewVideo
-                key={i}
-                src={m.url}
-                poster={m.thumbnail_url}
-                className="w-full rounded-xl bg-black"
-                placeholderClassName="aspect-video rounded-xl"
-              />
+              <figure key={i} className="space-y-1">
+                {body}
+                {caption && <figcaption className="text-xs text-neutral-400">{caption}</figcaption>}
+              </figure>
             );
           })}
         </div>

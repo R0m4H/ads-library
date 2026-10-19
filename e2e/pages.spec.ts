@@ -430,6 +430,92 @@ test("brand page: the sync limit starts at 2000 and can be typed higher", async 
   expect(syncBodies[0].limit).toBe(5000);
 });
 
+test("ad library: an ad with a saved picture shows it even though Meta's link has expired", async ({ page }) => {
+  await installMocks(page);
+  const savedRequests: string[] = [];
+  page.on("request", (r) => {
+    if (/\/api\/ads\/ad-2\/preview\?i=0$/.test(r.url())) savedRequests.push(r.url());
+  });
+  await page.goto("/ads");
+  await settle(page);
+
+  const card = page.locator('a[href="/ads/ad-2"]');
+  await expect(card.locator("img").first()).toBeVisible();
+  await expect(card.getByText("Preview expired")).toHaveCount(0);
+  expect(savedRequests.length).toBeGreaterThan(0);
+  // ad-5 has an expired link and no saved copy: it still shows the placeholder.
+  await expect(page.locator('a[href="/ads/ad-5"]').getByText("Preview expired")).toBeVisible();
+});
+
+test("brands: 'Save previews' copies the pictures and reports how many", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/brands");
+  await settle(page);
+  await page.getByRole("button", { name: "Save previews" }).click();
+  await expect(page.getByText("Saved 5 pictures.")).toBeVisible();
+});
+
+test("brand page: a finished sync saves the pictures by itself", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/brands/brand-a");
+  await settle(page);
+  await page.getByRole("button", { name: "Sync", exact: true }).first().click();
+  await expect(page.getByText("Found 10 ads. Saved 5 pictures.").first()).toBeVisible({ timeout: 20_000 });
+});
+
+test("opening the app saves waiting previews in the background, with a small note", async ({ page }) => {
+  await installMocks(page, { pendingPreviews: 3 });
+  const posts: string[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "POST" && new URL(r.url()).pathname === "/api/ads/save-previews") posts.push(r.url());
+  });
+  await page.goto("/ads");
+  await expect(page.getByRole("status").filter({ hasText: "Saved 3 pictures." })).toBeVisible({ timeout: 20_000 });
+  expect(posts.length).toBeGreaterThan(0);
+});
+
+test("opening the app does nothing visible when no previews are waiting", async ({ page }) => {
+  await installMocks(page, { pendingPreviews: 0 });
+  const posts: string[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "POST" && new URL(r.url()).pathname === "/api/ads/save-previews") posts.push(r.url());
+  });
+  await page.goto("/ads");
+  await settle(page);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  expect(posts).toHaveLength(0);
+});
+
+test("brands: a notice says how many previews are waiting to be saved", async ({ page }) => {
+  await installMocks(page, { pendingPreviews: 7 });
+  await page.goto("/brands");
+  await settle(page);
+  await expect(page.getByText("7 ads have a preview waiting to be saved.")).toBeVisible();
+});
+
+test("ad library: a card shows the squarest saved version of an ad that has a vertical and a square one", async ({ page }) => {
+  await installMocks(page);
+  const requested: string[] = [];
+  page.on("request", (r) => {
+    if (/\/api\/ads\/ad-7\/preview/.test(r.url())) requested.push(new URL(r.url()).searchParams.get("i") ?? "");
+  });
+  await page.goto("/ads");
+  await settle(page);
+  await expect(page.locator('a[href="/ads/ad-7"] img[src*="/preview?i=1"]')).toBeVisible();
+  expect(requested).toContain("1"); // the square one
+  expect(requested).not.toContain("0"); // not the vertical one cropped into a square
+});
+
+test("ad page: every saved version is shown, labelled by shape", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads/ad-7");
+  await settle(page);
+  await expect(page.getByText("Vertical", { exact: true })).toBeVisible();
+  await expect(page.getByText("Square", { exact: true })).toBeVisible();
+  await expect(page.locator('img[src*="/preview?i=0"]')).toBeVisible();
+  await expect(page.locator('img[src*="/preview?i=1"]')).toBeVisible();
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

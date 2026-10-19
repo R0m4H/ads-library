@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import clsx from "clsx";
+import { describeSaveResult, savePreviews } from "@/lib/savePreviewsClient";
 import { DEFAULT_SYNC_ADS, MAX_SYNC_ADS, type Platform, type ScrapeRun, type SyncPreset } from "@/lib/types";
 
 export function SyncButton({
@@ -21,12 +22,20 @@ export function SyncButton({
   const [limit, setLimit] = useState(DEFAULT_SYNC_ADS);
   const [runId, setRunId] = useState<string | null>(null);
 
+  async function saveFreshPreviews(found: number) {
+    setMessage(`Found ${found} ads — saving previews…`);
+    const result = await savePreviews(({ saved }) => setMessage(`Found ${found} ads — saving previews… ${saved} saved`));
+    setMessage(`Found ${found} ads. ${describeSaveResult(result)}`);
+  }
+
   // Returns true if the run reached a terminal state and the UI was updated.
   function applyTerminal(run: ScrapeRun): boolean {
     if (run.status === "succeeded") {
       setStatus("idle");
       setMessage(`Found ${run.ads_found ?? 0} ads`);
       onDone?.(run);
+      // Right away, while Meta's picture links are fresh, copy the pictures into our own storage.
+      void saveFreshPreviews(run.ads_found ?? 0);
       return true;
     }
     if (run.status === "failed") {

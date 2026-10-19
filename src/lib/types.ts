@@ -20,6 +20,22 @@ export interface AdMedia {
   type: "image" | "video";
   url: string;
   thumbnail_url?: string;
+  /** The smaller (SD) version of a video, when the source gives one — what we save. */
+  sd_url?: string;
+}
+
+/** One saved picture of an ad in our own storage (Cloudflare R2). See migration 0015. */
+export interface PreviewEntry {
+  /** Position in the ad's media list. */
+  i: number;
+  key: string;
+  w: number;
+  h: number;
+  /** Set when the video itself (SD version) was saved too. */
+  video_key?: string;
+  video_bytes?: number;
+  /** Why the video was not saved (for example "too large"). */
+  video_skipped?: string;
 }
 
 export interface Ad {
@@ -37,6 +53,8 @@ export interface Ad {
   theme_tags: string[];
   /** True once an editor set the themes by hand (or accepted an AI suggestion): "Re-tag all ads" skips it. */
   tags_manual: boolean;
+  /** Our own saved copies of this ad's pictures and videos (Cloudflare R2). Empty if none were saved. */
+  previews: PreviewEntry[];
   spend_estimate: string | null;
   impressions_estimate: string | null;
   first_seen_at: string;

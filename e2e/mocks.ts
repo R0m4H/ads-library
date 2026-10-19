@@ -37,7 +37,7 @@ export const themes = [
 ];
 
 type Fmt = "image" | "video" | "carousel" | null;
-function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; headline: string | null; body: string | null; cta: string | null; active: boolean; tags: string[]; media: boolean; manual: boolean; expiredMedia: boolean }> = {}) {
+function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; headline: string | null; body: string | null; cta: string | null; active: boolean; tags: string[]; media: boolean; manual: boolean; expiredMedia: boolean; saved: boolean; variants: boolean }> = {}) {
   const b = brands[o.brand ?? i % brands.length];
   const fmt: Fmt = o.fmt === undefined ? "image" : o.fmt;
   return {
@@ -50,11 +50,19 @@ function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; h
     body: o.body === undefined ? "Short body copy for the ad." : o.body,
     cta: o.cta === undefined ? "Learn more" : o.cta,
     // A Facebook-style signed link whose oe= expiry (1973) is long past.
-    media: o.expiredMedia ? [{ type: "image", url: "https://scontent.example.invalid/v/t39/expired.jpg?oe=5F5E100&oh=abc" }] : o.media === false ? [] : [fmt === "video" ? { type: "video", url: "https://example.invalid/v.mp4", thumbnail_url: svg("video", "#334155") } : { type: "image", url: svg(`creative ${i}`, i % 2 ? "#0a1628" : "#ff5a00") }],
+    media: o.variants
+      ? [{ type: "image", url: svg("vertical", "#0a1628") }, { type: "image", url: svg("square", "#ff5a00") }]
+      : o.expiredMedia ? [{ type: "image", url: "https://scontent.example.invalid/v/t39/expired.jpg?oe=5F5E100&oh=abc" }] : o.media === false ? [] : [fmt === "video" ? { type: "video", url: "https://example.invalid/v.mp4", thumbnail_url: svg("video", "#334155") } : { type: "image", url: svg(`creative ${i}`, i % 2 ? "#0a1628" : "#ff5a00") }],
     landing_url: "https://example.com/landing",
     source_url: `https://www.facebook.com/ads/library/?id=${i}`,
     theme_tags: o.tags ?? ["Deposits"],
     tags_manual: o.manual ?? false,
+    // Our saved copies: a plain saved ad has one square picture; a "variants" ad has a vertical and a square one.
+    previews: o.variants
+      ? [{ i: 0, key: "previews/v0.webp", w: 640, h: 1138 }, { i: 1, key: "previews/v1.webp", w: 640, h: 640 }]
+      : o.saved
+        ? [{ i: 0, key: "previews/mock.webp", w: 640, h: 640 }]
+        : [],
     spend_estimate: null,
     impressions_estimate: null,
     first_seen_at: daysAgo(3 + i),
@@ -69,12 +77,12 @@ function ad(i: number, o: Partial<{ brand: number; platform: string; fmt: Fmt; h
 export const ads = [
   ad(0, { brand: 0, platform: "meta", headline: "ჩაერთე გათამაშებაში და მოიგე გარანტირებული ბილეთები უკვე დღესვე, ახალი ბარათით", body: "🗝️ დააგროვე 5 გასაღები და გახსენი სკივრი, სადაც გათამაშების გარანტირებული 50 ბილეთი დაგხვდება. დამატებით შეიძლება დაგხვდეს 1 000 ბილეთი და სხვა სიურპრიზები.", tags: ["Cards & Everyday Payments With A Deliberately Overlong Theme Name", "Deposits", "Mortgage"], manual: true }),
   ad(1, { brand: 1, platform: "meta", fmt: "video", headline: "TBC", body: null, cta: null, tags: [] }),
-  ad(2, { brand: 2, platform: "google", fmt: "carousel", headline: "Short", body: "Carousel body copy", tags: ["Mortgage"] }),
+  ad(2, { brand: 2, platform: "google", fmt: "carousel", expiredMedia: true, saved: true, headline: "Short", body: "Carousel body copy", tags: ["Mortgage"] }),
   ad(3, { brand: 0, platform: "linkedin", headline: null, body: null, cta: null, media: false, tags: [] }),
   ad(4, { brand: 3, platform: "meta", active: false, headline: "Inactive ad with a normal headline", tags: ["Deposits"] }),
   ad(5, { brand: 1, platform: "meta", expiredMedia: true, headline: "Averyveryveryveryverylongsingleworddoesnotbreakanywhereandkeepsgoingandgoing", body: "Averyveryveryveryverylongsingleworddoesnotbreakanywhereandkeepsgoingandgoing", tags: ["Deposits"] }),
   ad(6, { brand: 2, platform: "google", headline: "სამომხმარებლო სესხი 0% პირველ თვეებში", body: "მიიღე სესხი რამდენიმე წუთში, ონლაინ, ფილიალში მისვლის გარეშე.", cta: "მიიღე სესხი", tags: ["სამომხმარებლო სესხი"] }),
-  ad(7, { brand: 0, platform: "meta", headline: "Open a deposit", body: "Grow your savings with competitive rates.", tags: ["Deposits", "სამომხმარებლო სესხი"] }),
+  ad(7, { brand: 0, platform: "meta", variants: true, headline: "Open a deposit", body: "Grow your savings with competitive rates.", tags: ["Deposits", "სამომხმარებლო სესხი"] }),
 ];
 
 const bucket = (total: number, active: number, untagged: number, counts: Record<string, number>, hl: [string, number][]) => ({
@@ -156,7 +164,7 @@ const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
 /** Intercepts every /api call the pages make. Any write is answered with a harmless OK. */
-export async function installMocks(page: Page) {
+export async function installMocks(page: Page, opts: { pendingPreviews?: number } = {}) {
   await page.route("**/api/**", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
@@ -169,6 +177,17 @@ export async function installMocks(page: Page) {
     }
     if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
     if (path === "/api/sync" && method === "POST") return json(route, { run_id: "run-1" });
+    if (path === "/api/sync/run-1") return json(route, { run: { id: "run-1", status: "succeeded", ads_found: 10, ads_active: 8, error: null } });
+    if (path === "/api/ads/save-previews") {
+      // GET = "how many are waiting"; POST = "save a batch".
+      if (method === "GET") return json(route, { configured: true, pending: opts.pendingPreviews ?? 0 });
+      return json(route, { saved: opts.pendingPreviews ?? 5, videos: 0, failed: 0, firstError: null, cursor: null, done: true });
+    }
+    // Our saved copy of an ad's picture: a plain orange square.
+    if (/^\/api\/ads\/[^/]+\/preview$/.test(path)) {
+      const orange = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+      return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from(orange, "base64") });
+    }
     if (path === "/api/ads/repair-copy") return json(route, { repaired: 3, cleared: 1, remaining: 0 });
 
     // Editing an ad's themes: by hand marks it; handing it back re-tags it from the rules.

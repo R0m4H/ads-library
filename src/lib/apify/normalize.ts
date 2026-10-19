@@ -151,7 +151,7 @@ interface MetaCard {
 
 function metaMediaFromCard(card: MetaCard): AdMedia | null {
   const videoUrl = card.video_hd_url || card.video_sd_url;
-  if (videoUrl) return { type: "video", url: videoUrl, thumbnail_url: card.video_preview_image_url };
+  if (videoUrl) return { type: "video", url: videoUrl, thumbnail_url: card.video_preview_image_url, sd_url: card.video_sd_url };
   const imageUrl = card.original_image_url || card.resized_image_url;
   if (imageUrl) return { type: "image", url: imageUrl };
   return null;

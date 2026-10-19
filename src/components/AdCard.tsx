@@ -10,6 +10,7 @@ import { useCurrentUser } from "./RoleProvider";
 import { PlatformBadge } from "./PlatformBadge";
 import { SingleSelect } from "./MultiSelect";
 import { PreviewImage } from "./MediaPreview";
+import { cardEntry, savedImageSrc } from "@/lib/adPreviews";
 
 export function AdCard({
   ad,
@@ -25,7 +26,11 @@ export function AdCard({
   onTagsChange?: (id: string, tags: string[]) => void;
 }) {
   const { role } = useCurrentUser();
-  const media = ad.media[0];
+  // Show the saved picture closest to square when we have several (many ads carry a vertical and a square
+  // version of the same creative), so it fills the card without cropping. Otherwise the ad's first picture.
+  const chosen = cardEntry(ad);
+  const media = ad.media[chosen?.i ?? 0] ?? ad.media[0];
+  const savedSrc = chosen ? savedImageSrc(ad.id, chosen.i) : undefined;
   const days = daysSince(ad.first_seen_at);
   const [addingTheme, setAddingTheme] = useState(false);
 
@@ -75,13 +80,23 @@ export function AdCard({
         {media ? (
           media.type === "video" ? (
             <div className="flex h-full w-full items-center justify-center bg-neutral-900">
-              {media.thumbnail_url ? (
-                <PreviewImage src={media.thumbnail_url} alt="" className="h-full w-full object-cover opacity-80" />
+              {media.thumbnail_url || savedSrc ? (
+                <PreviewImage
+                  src={media.thumbnail_url}
+                  savedSrc={savedSrc}
+                  alt=""
+                  className="h-full w-full object-cover opacity-80"
+                />
               ) : null}
               <PlayCircle className="absolute h-10 w-10 text-white drop-shadow" />
             </div>
           ) : (
-            <PreviewImage src={media.url} alt={ad.headline ?? "Ad creative"} className="h-full w-full object-cover" />
+            <PreviewImage
+              src={media.url}
+              savedSrc={savedSrc}
+              alt={ad.headline ?? "Ad creative"}
+              className="h-full w-full object-cover"
+            />
           )
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-neutral-400">No media</div>

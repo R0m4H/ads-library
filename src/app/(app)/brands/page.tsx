@@ -5,6 +5,7 @@ import type { Brand } from "@/lib/types";
 import { BrandForm } from "@/components/BrandForm";
 import { BrandCard } from "@/components/BrandCard";
 import { RoleGate } from "@/components/RoleGate";
+import { SavePreviewsButton } from "@/components/SavePreviewsButton";
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -28,7 +29,10 @@ export default function BrandsPage() {
             <h1 className="text-xl font-semibold">Brands</h1>
             <p className="text-sm text-neutral-500">Add your own brand and every competitor you want to track.</p>
           </div>
-          <BrandForm onCreated={(b) => setBrands((prev) => [...prev, b])} />
+          <div className="flex flex-wrap items-start gap-2">
+            <SavePreviewsButton />
+            <BrandForm onCreated={(b) => setBrands((prev) => [...prev, b])} />
+          </div>
         </div>
 
         {loading ? (
