@@ -181,7 +181,7 @@ export async function installMocks(page: Page, opts: { pendingPreviews?: number 
     if (path === "/api/ads/save-previews") {
       // GET = "how many are waiting"; POST = "save a batch".
       if (method === "GET") return json(route, { configured: true, pending: opts.pendingPreviews ?? 0 });
-      return json(route, { saved: opts.pendingPreviews ?? 5, videos: 0, failed: 0, firstError: null, cursor: null, done: true });
+      return json(route, { ads: opts.pendingPreviews ?? 3, saved: opts.pendingPreviews ?? 5, videos: 0, failed: 0, firstError: null, cursor: null, done: true });
     }
     // Our saved copy of an ad's picture: a plain orange square.
     if (/^\/api\/ads\/[^/]+\/preview$/.test(path)) {

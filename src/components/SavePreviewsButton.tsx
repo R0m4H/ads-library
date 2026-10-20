@@ -26,7 +26,7 @@ export function SavePreviewsButton() {
   async function run() {
     setRunning(true);
     setMessage("Saving previews…");
-    const result = await savePreviews(({ saved }) => setMessage(`Saving previews… ${saved} saved so far`));
+    const result = await savePreviews(({ ads, saved }) => setMessage(`Saving previews… ${ads} ads done (${saved} pictures)`));
     setMessage(describeSaveResult(result));
     setWaiting(null);
     setRunning(false);

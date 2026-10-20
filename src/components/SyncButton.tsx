@@ -24,7 +24,7 @@ export function SyncButton({
 
   async function saveFreshPreviews(found: number) {
     setMessage(`Found ${found} ads — saving previews…`);
-    const result = await savePreviews(({ saved }) => setMessage(`Found ${found} ads — saving previews… ${saved} saved`));
+    const result = await savePreviews(({ ads }) => setMessage(`Found ${found} ads — saving previews… ${ads} ads done`));
     setMessage(`Found ${found} ads. ${describeSaveResult(result)}`);
   }
 

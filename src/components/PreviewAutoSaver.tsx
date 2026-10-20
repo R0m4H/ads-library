@@ -33,7 +33,8 @@ export function PreviewAutoSaver() {
       const status = await getPendingPreviews();
       if (!status || !status.configured || status.pending === 0) return;
       setNote(`Saving ${status.pending} ad previews in the background…`);
-      const result = await savePreviews(({ saved }) => setNote(`Saving ad previews in the background… ${saved} of ${status.pending}`));
+      // Count ads against ads (an ad can have several pictures, so pictures would run past the total).
+      const result = await savePreviews(({ ads }) => setNote(`Saving ad previews in the background… ${Math.min(ads, status.pending)} of ${status.pending} ads`));
       setNote(describeSaveResult(result));
       hide = setTimeout(() => setNote(null), 6000);
     })();

@@ -56,6 +56,7 @@ export async function POST(req: Request) {
   const results = await Promise.all(scan.picked.map((ad) => saveAd(supabase, ad)));
   const failures = results.flatMap((r) => r.failures);
   return NextResponse.json({
+    ads: results.length,
     saved: results.reduce((n, r) => n + r.images, 0),
     videos: results.reduce((n, r) => n + r.videos, 0),
     failed: failures.length,

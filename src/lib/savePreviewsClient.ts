@@ -1,4 +1,6 @@
 export interface SaveResult {
+  /** Ads worked on (an ad can have several pictures, so this is smaller than `saved`). */
+  ads: number;
   /** Pictures saved. */
   saved: number;
   /** Videos saved. */
@@ -16,15 +18,18 @@ export interface SaveResult {
  * Asks the server to copy ad pictures into our own storage, one batch at a time, until it reports it has gone
  * through every ad. Each batch is a separate request so none comes near the server's time limit.
  */
-export async function savePreviews(onProgress?: (progress: { saved: number; failed: number }) => void): Promise<SaveResult> {
+export async function savePreviews(
+  onProgress?: (progress: { ads: number; saved: number; videos: number; failed: number }) => void
+): Promise<SaveResult> {
   let cursor: string | null = null;
+  let ads = 0;
   let saved = 0;
   let videos = 0;
   let failed = 0;
   let firstError: string | undefined;
 
   for (let round = 0; round < 800; round++) {
-    let json: { saved?: number; videos?: number; failed?: number; firstError?: string | null; cursor?: string | null; done?: boolean; error?: string; notConfigured?: boolean };
+    let json: { ads?: number; saved?: number; videos?: number; failed?: number; firstError?: string | null; cursor?: string | null; done?: boolean; error?: string; notConfigured?: boolean };
     let ok: boolean;
     try {
       const res = await fetch("/api/ads/save-previews", {
@@ -35,19 +40,20 @@ export async function savePreviews(onProgress?: (progress: { saved: number; fail
       ok = res.ok;
       json = await res.json().catch(() => ({}));
     } catch {
-      return { saved, videos, failed, firstError, error: "Could not reach the server." };
+      return { ads, saved, videos, failed, firstError, error: "Could not reach the server." };
     }
-    if (!ok) return { saved, videos, failed, firstError, error: json.error ?? "Saving failed.", notConfigured: json.notConfigured };
+    if (!ok) return { ads, saved, videos, failed, firstError, error: json.error ?? "Saving failed.", notConfigured: json.notConfigured };
 
+    ads += json.ads ?? 0;
     saved += json.saved ?? 0;
     videos += json.videos ?? 0;
     failed += json.failed ?? 0;
     firstError ??= json.firstError ?? undefined;
     cursor = json.cursor ?? cursor;
-    onProgress?.({ saved, failed });
+    onProgress?.({ ads, saved, videos, failed });
     if (json.done) break;
   }
-  return { saved, videos, failed, firstError };
+  return { ads, saved, videos, failed, firstError };
 }
 
 export function describeSaveResult(r: SaveResult): string {
