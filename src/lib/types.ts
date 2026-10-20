@@ -72,6 +72,8 @@ export interface AdWithBrand extends Ad {
 export interface ThemeRule {
   id: string;
   name: string;
+  /** The pages this theme applies to; empty means a general theme that applies to every page. */
+  brand_ids: string[];
   keywords: string[];
   priority: number;
   excludes: string[];

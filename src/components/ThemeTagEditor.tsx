@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { ThemeRule } from "@/lib/types";
 import { canEdit } from "@/lib/role";
+import { rulesForBrand, uniqueNames } from "@/lib/classify";
 import { useCurrentUser } from "./RoleProvider";
 import { SingleSelect } from "./MultiSelect";
 
@@ -13,7 +14,10 @@ export function ThemeTagEditor({
   onChange,
   manual = false,
   onManualChange,
+  brandId,
 }: {
+  /** The page the ad belongs to: only the themes that apply to that page are offered. */
+  brandId?: string | null;
   adId: string;
   tags: string[];
   onChange: (tags: string[]) => void;
@@ -73,7 +77,7 @@ export function ThemeTagEditor({
     save([...tags, tag]);
   }
 
-  const available = themes.map((t) => t.name).filter((name) => !tags.includes(name));
+  const available = uniqueNames(rulesForBrand(themes, brandId)).filter((name) => !tags.includes(name));
 
   if (readOnly) {
     return (

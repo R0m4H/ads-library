@@ -1,4 +1,4 @@
-import { classifyAd, type ThemeRuleLike } from "./classify";
+import { classifyAd, rulesForBrand, type ThemeRuleLike } from "./classify";
 
 export interface RetagAd {
   id: string;
@@ -6,6 +6,8 @@ export interface RetagAd {
   body: string | null;
   cta: string | null;
   theme_tags: string[] | null;
+  /** The page the ad belongs to — decides which themes apply to it. */
+  brand_id?: string | null;
   /** Tags were set by hand — never touched by a re-tag. */
   tags_manual?: boolean | null;
 }
@@ -33,13 +35,24 @@ export function planRetag(ads: RetagAd[], rules: ThemeRuleLike[]): RetagPlan {
   let changed = 0;
   let skipped = 0;
   const byKey = new Map<string, { tags: string[]; ids: string[] }>();
+  // Each page has its own set of applicable themes; work it out once per page.
+  const rulesByBrand = new Map<string, ThemeRuleLike[]>();
+  const rulesFor = (brandId: string | null | undefined) => {
+    const key = brandId ?? "";
+    let r = rulesByBrand.get(key);
+    if (!r) {
+      r = rulesForBrand(rules, brandId);
+      rulesByBrand.set(key, r);
+    }
+    return r;
+  };
 
   for (const ad of ads) {
     if (ad.tags_manual) {
       skipped += 1;
       continue;
     }
-    const next = classifyAd(ad.headline, ad.body, ad.cta, rules);
+    const next = classifyAd(ad.headline, ad.body, ad.cta, rulesFor(ad.brand_id));
     if (next.length > 0) tagged += 1;
     if (sameTags(next, ad.theme_tags ?? [])) continue;
 

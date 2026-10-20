@@ -6,6 +6,7 @@ import { AD_FORMAT_OPTIONS, UNTAGGED_THEME, type Brand, type Platform, type Them
 import { canEdit } from "@/lib/role";
 import { useCurrentUser } from "./RoleProvider";
 import { MultiSelect, SingleSelect } from "./MultiSelect";
+import { uniqueNames } from "@/lib/classify";
 
 export interface AdFilters {
   q: string;
@@ -49,7 +50,8 @@ export function FiltersBar({
     ...brands.filter((b) => b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Your brands" })),
     ...brands.filter((b) => !b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Competitors" })),
   ];
-  const themeOptions = [{ value: UNTAGGED_THEME, label: "No theme" }, ...themes.map((t) => ({ value: t.name, label: t.name }))];
+  // A theme name can exist for several pages (and as a general theme); list each name once.
+  const themeOptions = [{ value: UNTAGGED_THEME, label: "No theme" }, ...uniqueNames(themes).map((name) => ({ value: name, label: name }))];
 
   function set<K extends keyof AdFilters>(key: K, value: AdFilters[K]) {
     onChange({ ...filters, [key]: value });

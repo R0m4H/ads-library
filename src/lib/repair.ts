@@ -1,4 +1,4 @@
-import { classifyAd, type ThemeRuleLike } from "./classify";
+import { classifyAd, rulesForBrand, type ThemeRuleLike } from "./classify";
 import { normalizeItem } from "./apify/normalize";
 import type { Platform } from "./types";
 
@@ -12,6 +12,8 @@ export interface RepairInput {
   cta: string | null;
   theme_tags: string[] | null;
   tags_manual?: boolean | null;
+  /** The page the ad belongs to — decides which themes apply to it. */
+  brand_id?: string | null;
   /** The original scraper item, saved with every ad. */
   raw: Record<string, unknown> | null;
 }
@@ -41,7 +43,7 @@ export function repairAd(ad: RepairInput, rules: ThemeRuleLike[]): Record<string
   }
 
   if (!ad.tags_manual && (ad.theme_tags ?? []).length === 0) {
-    const tags = classifyAd(next.headline, next.body, next.cta, rules);
+    const tags = classifyAd(next.headline, next.body, next.cta, rulesForBrand(rules, ad.brand_id));
     if (tags.length > 0) update.theme_tags = tags;
   }
   return update;

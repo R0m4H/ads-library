@@ -200,6 +200,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
             <p className="mb-1 text-xs font-medium text-neutral-500">Themes</p>
             <ThemeTagEditor
               adId={ad.id}
+              brandId={ad.brand_id}
               tags={ad.theme_tags}
               onChange={(tags) => setAd((prev) => (prev ? { ...prev, theme_tags: tags } : prev))}
               manual={ad.tags_manual}

@@ -13,7 +13,7 @@ export async function POST() {
   if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
-  const { data: rules, error: rulesError } = await supabase.from("theme_rules").select("name, keywords, priority, excludes");
+  const { data: rules, error: rulesError } = await supabase.from("theme_rules").select("name, keywords, priority, excludes, brand_ids");
   if (rulesError) return NextResponse.json({ error: rulesError.message }, { status: 500 });
 
   // Page through all ads — Supabase caps a single select at 1000 rows.
@@ -22,7 +22,7 @@ export async function POST() {
   for (let page = 0; ; page++) {
     const { data, error } = await supabase
       .from("ads")
-      .select("id, headline, body, cta, theme_tags, tags_manual")
+      .select("id, headline, body, cta, theme_tags, tags_manual, brand_id")
       .range(page * pageSize, page * pageSize + pageSize - 1);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     ads.push(...((data as RetagAd[] | null) ?? []));

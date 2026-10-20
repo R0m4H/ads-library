@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { abortActorRun, getDatasetItems, getRunStatus } from "@/lib/apify/client";
 import { normalizeItem } from "@/lib/apify/normalize";
-import { classifyAd } from "@/lib/classify";
+import { classifyAd, rulesForBrand } from "@/lib/classify";
 import type { Platform } from "@/lib/types";
 import { canEdit, getCurrentUserRole } from "@/lib/role";
 
@@ -46,7 +46,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
   const rawItems = await getDatasetItems(apifyStatus.datasetId);
   const normalized = rawItems.map((item) => normalizeItem(platform, item)).filter((x) => x !== null);
 
-  const { data: themeRules } = await supabase.from("theme_rules").select("name, keywords, priority, excludes");
+  const { data: allThemeRules } = await supabase.from("theme_rules").select("name, keywords, priority, excludes, brand_ids");
+  // Only the themes that apply to this page: the general ones plus its own.
+  const themeRules = rulesForBrand(allThemeRules ?? [], run.brand_id);
 
   // Fetch existing ads for this brand+platform once, instead of one query per
   // ad — doing a SELECT + upsert per ad serially was slow enough on large

@@ -60,7 +60,8 @@ export async function GET(req: Request) {
   if (brandsError) return NextResponse.json({ error: brandsError.message }, { status: 500 });
   if (themesError) return NextResponse.json({ error: themesError.message }, { status: 500 });
 
-  const themeNames = (themeRules ?? []).map((t) => t.name);
+  // A name can exist in more than one scope (general and per page); the comparison lists each name once.
+  const themeNames = [...new Set((themeRules ?? []).map((t) => t.name))];
 
   try {
     const results = await Promise.all(

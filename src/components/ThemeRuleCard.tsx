@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import clsx from "clsx";
-import type { ThemeRule } from "@/lib/types";
+import type { Brand, ThemeRule } from "@/lib/types";
+import { rulesForScope, uniqueNames } from "@/lib/classify";
+import { MultiSelect } from "./MultiSelect";
 
 function parseKeywords(input: string): string[] {
   return input
@@ -12,14 +14,24 @@ function parseKeywords(input: string): string[] {
     .filter(Boolean);
 }
 
+/** Every page, for choosing where a theme applies. Choosing none means all pages. */
+export function pageOptions(brands: Brand[]) {
+  return [
+    ...brands.filter((b) => b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Your pages" })),
+    ...brands.filter((b) => !b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Competitors" })),
+  ];
+}
+
 export function ThemeRuleCard({
   theme,
   allThemes,
+  brands,
   onUpdated,
   onDeleted,
 }: {
   theme: ThemeRule;
   allThemes: ThemeRule[];
+  brands: Brand[];
   onUpdated: (theme: ThemeRule) => void;
   onDeleted: (id: string) => void;
 }) {
@@ -28,6 +40,7 @@ export function ThemeRuleCard({
   const [keywordsText, setKeywordsText] = useState(theme.keywords.join(", "));
   const [priority, setPriority] = useState(String(theme.priority ?? 0));
   const [excludes, setExcludes] = useState<string[]>(theme.excludes ?? []);
+  const [scope, setScope] = useState<string[]>(theme.brand_ids ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,14 +59,14 @@ export function ThemeRuleCard({
     const res = await fetch(`/api/themes/${theme.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), keywords, priority: Number(priority) || 0, excludes }),
+      body: JSON.stringify({ name: name.trim(), keywords, priority: Number(priority) || 0, excludes, brand_ids: scope }),
     });
     const json = await res.json();
     if (res.ok) {
       onUpdated(json.theme);
       setEditing(false);
     } else {
-      setError(JSON.stringify(json.error));
+      setError(typeof json.error === "string" ? json.error : JSON.stringify(json.error));
     }
     setSaving(false);
   }
@@ -64,7 +77,12 @@ export function ThemeRuleCard({
     if (res.ok) onDeleted(theme.id);
   }
 
-  const otherThemes = allThemes.filter((t) => t.id !== theme.id);
+  // Excludes can name any theme that could apply where this one does (general ones, plus those of the chosen pages).
+  const otherThemes = uniqueNames(rulesForScope(allThemes, scope).filter((t) => t.id !== theme.id && t.name !== name.trim())).map((n) => ({
+    id: n,
+    name: n,
+  }));
+  const pageNames = (theme.brand_ids ?? []).map((id) => brands.find((b) => b.id === id)?.name).filter((n): n is string => Boolean(n));
 
   if (editing) {
     return (
@@ -76,6 +94,12 @@ export function ThemeRuleCard({
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-600">
+            Applies to <span className="font-normal text-neutral-400">(tick the pages, or leave empty for all pages)</span>
+          </label>
+          <MultiSelect allLabel="All pages" noun="pages" options={pageOptions(brands)} value={scope} onChange={setScope} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-neutral-600">Keywords (comma or newline separated)</label>
@@ -166,6 +190,7 @@ export function ThemeRuleCard({
           </button>
         </div>
       </div>
+      {pageNames.length > 0 && <p className="mb-2 break-words text-xs text-neutral-500">Only for: {pageNames.join(", ")}</p>}
       <div className="flex flex-wrap gap-1.5">
         {theme.keywords.map((kw) => (
           <span key={kw} className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">

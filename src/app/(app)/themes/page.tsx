@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PlayCircle } from "lucide-react";
 import clsx from "clsx";
-import type { AdMedia, Platform, ThemeRule } from "@/lib/types";
-import { ThemeRuleCard } from "@/components/ThemeRuleCard";
+import type { AdMedia, Brand, Platform, ThemeRule } from "@/lib/types";
+import { rulesForBrand, rulesForScope, uniqueNames } from "@/lib/classify";
+import { ThemeRuleCard, pageOptions } from "@/components/ThemeRuleCard";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { RoleGate } from "@/components/RoleGate";
-import { SingleSelect } from "@/components/MultiSelect";
+import { MultiSelect, SingleSelect } from "@/components/MultiSelect";
 
 function parseKeywords(input: string): string[] {
   return input
@@ -25,6 +26,8 @@ interface Suggestion {
   cta: string | null;
   media: AdMedia[];
   brandName: string;
+  /** The page the ad belongs to — decides which themes it can get. */
+  brandId: string;
   suggestedTheme: string;
   isNewTheme: boolean;
   reason: string;
@@ -32,8 +35,11 @@ interface Suggestion {
 
 export default function ThemesPage() {
   const [themes, setThemes] = useState<ThemeRule[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
+  // The pages the new theme applies to; empty = all pages.
+  const [newScope, setNewScope] = useState<string[]>([]);
   const [newKeywords, setNewKeywords] = useState("");
   const [newPriority, setNewPriority] = useState("0");
   const [newExcludes, setNewExcludes] = useState<string[]>([]);
@@ -56,6 +62,9 @@ export default function ThemesPage() {
         setThemes(json.themes ?? []);
         setLoading(false);
       });
+    fetch("/api/brands")
+      .then((r) => r.json())
+      .then((json) => setBrands(json.brands ?? []));
   }
 
   useEffect(load, []);
@@ -77,6 +86,7 @@ export default function ThemesPage() {
         keywords,
         priority: Number(newPriority) || 0,
         excludes: newExcludes,
+        brand_ids: newScope,
       }),
     });
     const json = await res.json();
@@ -87,7 +97,7 @@ export default function ThemesPage() {
       setNewPriority("0");
       setNewExcludes([]);
     } else {
-      setAddError(JSON.stringify(json.error));
+      setAddError(typeof json.error === "string" ? json.error : JSON.stringify(json.error));
     }
     setSaving(false);
   }
@@ -167,14 +177,16 @@ export default function ThemesPage() {
     // If this theme doesn't exist as a rule yet, create one (seeded with the
     // theme name itself as a starting keyword) so it shows up in the list
     // below to edit — add real keywords, set priority, excludes, etc.
-    const key = theme.toLowerCase();
-    const alreadyExists = themes.some((t) => t.name.toLowerCase() === key) || createdThemeNames.current.has(key);
+    // A theme the AI invents becomes that page's own theme (it can be made general by editing its scope).
+    const key = `${s.brandId}|${theme.toLowerCase()}`;
+    const alreadyExists =
+      rulesForBrand(themes, s.brandId).some((t) => t.name.toLowerCase() === theme.toLowerCase()) || createdThemeNames.current.has(key);
     if (!alreadyExists) {
       createdThemeNames.current.add(key);
       const res = await fetch("/api/themes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: theme, keywords: [theme] }),
+        body: JSON.stringify({ name: theme, keywords: [theme], brand_ids: [s.brandId] }),
       });
       if (res.ok) {
         const json = await res.json();
@@ -297,17 +309,17 @@ export default function ThemesPage() {
                       onChange={(e) => setSuggestionTheme(s.id, e.target.value)}
                       className="w-40 max-w-full rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 focus:border-violet-400 focus:outline-none"
                     />
-                    {themes.some((t) => t.name.toLowerCase() === s.suggestedTheme.trim().toLowerCase()) ? (
+                    {rulesForBrand(themes, s.brandId).some((t) => t.name.toLowerCase() === s.suggestedTheme.trim().toLowerCase()) ? (
                       <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-neutral-500">existing</span>
                     ) : (
                       <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">new</span>
                     )}
-                    {themes.length > 0 && (
+                    {rulesForBrand(themes, s.brandId).length > 0 && (
                       <SingleSelect
                         compact
                         placeholder="Swap to…"
                         panelWidth={224}
-                        options={themes.map((t) => ({ value: t.name, label: t.name }))}
+                        options={uniqueNames(rulesForBrand(themes, s.brandId)).map((name) => ({ value: name, label: name }))}
                         value=""
                         onChange={(v) => v && setSuggestionTheme(s.id, v)}
                       />
@@ -351,6 +363,12 @@ export default function ThemesPage() {
           />
         </div>
         <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-600">
+            Applies to <span className="font-normal text-neutral-400">(tick the pages, or leave empty for all pages)</span>
+          </label>
+          <MultiSelect allLabel="All pages" noun="pages" options={pageOptions(brands)} value={newScope} onChange={setNewScope} />
+        </div>
+        <div>
           <label className="mb-1 block text-xs font-medium text-neutral-600">Keywords (comma or newline separated)</label>
           <textarea
             value={newKeywords}
@@ -371,25 +389,25 @@ export default function ThemesPage() {
             className="w-24 rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </div>
-        {themes.length > 0 && (
+        {uniqueNames(rulesForScope(themes, newScope)).length > 0 && (
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-600">
               Excludes <span className="font-normal text-neutral-400">(if this theme matches, don&apos;t also tag these)</span>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {themes.map((t) => (
+              {uniqueNames(rulesForScope(themes, newScope)).map((name) => (
                 <button
-                  key={t.id}
+                  key={name}
                   type="button"
-                  onClick={() => toggleNewExclude(t.name)}
+                  onClick={() => toggleNewExclude(name)}
                   className={clsx(
                     "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                    newExcludes.includes(t.name)
+                    newExcludes.includes(name)
                       ? "bg-red-100 text-red-700"
                       : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                   )}
                 >
-                  {t.name}
+                  {name}
                 </button>
               ))}
             </div>
@@ -412,15 +430,31 @@ export default function ThemesPage() {
           No themes yet — add one above to start tagging ads.
         </div>
       ) : (
-        <div className="space-y-3">
-          {themes.map((theme) => (
-            <ThemeRuleCard
-              key={theme.id}
-              theme={theme}
-              allThemes={themes}
-              onUpdated={(t) => setThemes((prev) => prev.map((x) => (x.id === t.id ? t : x)).sort((a, b) => a.name.localeCompare(b.name)))}
-              onDeleted={(id) => setThemes((prev) => prev.filter((t) => t.id !== id))}
-            />
+        <div className="space-y-6">
+          {[
+            { key: "general", title: "All pages", note: "Apply to every page's ads.", list: themes.filter((t) => !t.brand_ids?.length) },
+            { key: "specific", title: "Specific pages", note: "Only for the pages shown on each theme.", list: themes.filter((t) => t.brand_ids?.length > 0) },
+          ].map((section) => (
+            <section key={section.key} className="space-y-3">
+              <div>
+                <h2 className="break-words text-sm font-semibold text-neutral-800">{section.title}</h2>
+                <p className="text-xs text-neutral-400">{section.note}</p>
+              </div>
+              {section.list.length === 0 ? (
+                <p className="text-sm text-neutral-400">{section.key === "general" ? "No general themes yet." : "No themes limited to specific pages yet."}</p>
+              ) : (
+                section.list.map((theme) => (
+                  <ThemeRuleCard
+                    key={theme.id}
+                    theme={theme}
+                    allThemes={themes}
+                    brands={brands}
+                    onUpdated={(t) => setThemes((prev) => prev.map((x) => (x.id === t.id ? t : x)).sort((a, b) => a.name.localeCompare(b.name)))}
+                    onDeleted={(id) => setThemes((prev) => prev.filter((t) => t.id !== id))}
+                  />
+                ))
+              )}
+            </section>
           ))}
         </div>
       )}

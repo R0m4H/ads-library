@@ -11,6 +11,7 @@ import { PlatformBadge } from "./PlatformBadge";
 import { SingleSelect } from "./MultiSelect";
 import { PreviewImage } from "./MediaPreview";
 import { cardEntry, savedImageSrc } from "@/lib/adPreviews";
+import { rulesForBrand } from "@/lib/classify";
 
 export function AdCard({
   ad,
@@ -51,7 +52,8 @@ export function AdCard({
       setAddingTheme(false);
     }
   }
-  const availableThemes = themes.filter((t) => !ad.theme_tags.includes(t.name));
+  // Only the themes that apply to this ad's page (general ones plus the page's own).
+  const availableThemes = rulesForBrand(themes, ad.brand_id).filter((t) => !ad.theme_tags.includes(t.name));
 
   async function remove(e: React.MouseEvent) {
     e.preventDefault();

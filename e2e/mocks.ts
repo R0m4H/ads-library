@@ -30,10 +30,14 @@ export const brands = [
 ];
 
 export const themes = [
-  { id: "t1", name: "სამომხმარებლო სესხი", keywords: ["სამომხმარებლ", "სესხი"], priority: 10, excludes: [], created_at: NOW, updated_at: NOW },
-  { id: "t2", name: "Cards & Everyday Payments With A Deliberately Overlong Theme Name", keywords: ["ბარათი", "card", "ანგარიში", "payment"], priority: 0, excludes: ["სამომხმარებლო სესხი"], created_at: NOW, updated_at: NOW },
-  { id: "t3", name: "Deposits", keywords: ["ანაბარი", "deposit"], priority: 5, excludes: [], created_at: NOW, updated_at: NOW },
-  { id: "t4", name: "Mortgage", keywords: ["იპოთეკა"], priority: 0, excludes: [], created_at: NOW, updated_at: NOW },
+  { id: "t1", name: "სამომხმარებლო სესხი", keywords: ["სამომხმარებლ", "სესხი"], brand_ids: [], priority: 10, excludes: [], created_at: NOW, updated_at: NOW },
+  { id: "t2", name: "Cards & Everyday Payments With A Deliberately Overlong Theme Name", keywords: ["ბარათი", "card", "ანგარიში", "payment"], brand_ids: [], priority: 0, excludes: ["სამომხმარებლო სესხი"], created_at: NOW, updated_at: NOW },
+  { id: "t3", name: "Deposits", keywords: ["ანაბარი", "deposit"], brand_ids: [], priority: 5, excludes: [], created_at: NOW, updated_at: NOW },
+  { id: "t4", name: "Mortgage", keywords: ["იპოთეკა"], brand_ids: [], priority: 0, excludes: [], created_at: NOW, updated_at: NOW },
+  // A theme that belongs to TBC only.
+  { id: "t5", name: "Student offers", keywords: ["სტუდენტ", "student"], brand_ids: ["brand-b"], priority: 0, excludes: [], created_at: NOW, updated_at: NOW },
+  // A theme that applies to two pages (Bank of Georgia and TBC).
+  { id: "t6", name: "Premium offers", keywords: ["premium"], brand_ids: ["brand-a", "brand-b"], priority: 0, excludes: [], created_at: NOW, updated_at: NOW },
 ];
 
 type Fmt = "image" | "video" | "carousel" | null;
@@ -88,7 +92,7 @@ export const ads = [
 const bucket = (total: number, active: number, untagged: number, counts: Record<string, number>, hl: [string, number][]) => ({
   total, active, untagged, themeCounts: counts, headlines: hl.map(([headline, count]) => ({ headline, count })),
 });
-const themeNames = themes.map((t) => t.name);
+const themeNames = themes.filter((t) => !t.brand_ids.length).map((t) => t.name); // the comparison uses the general themes
 
 export const analysis = {
   // The last theme has 0 ads for every brand — the Analysis tab should hide it.
@@ -132,6 +136,7 @@ export const suggestions = [0, 3].map((i) => ({
   cta: ads[i].cta,
   media: ads[i].media,
   brandName: brands[i % brands.length].name,
+  brandId: brands[i % brands.length].id,
   suggestedTheme: i === 0 ? "Deposits" : "A brand new theme the AI invented",
   isNewTheme: i !== 0,
   reason: "Mentions savings rates, which matches the Deposits theme.",
@@ -176,6 +181,16 @@ export async function installMocks(page: Page, opts: { pendingPreviews?: number 
       return json(route, { invitation: { email: String(body.email).trim().toLowerCase(), role: body.role ?? "viewer", created_at: NOW } });
     }
     if (path === "/api/themes/suggest") return json(route, { suggestions, remainingUntagged: 12 });
+    if (path === "/api/themes" && method === "POST") {
+      const body = JSON.parse(req.postData() ?? "{}");
+      return json(route, { theme: { id: `new-${Date.now()}`, priority: 0, excludes: [], created_at: NOW, updated_at: NOW, ...body, brand_ids: body.brand_ids ?? [] } }, 201);
+    }
+    const themePatch = path.match(/^\/api\/themes\/([^/]+)$/);
+    if (themePatch && method === "PATCH") {
+      const body = JSON.parse(req.postData() ?? "{}");
+      const base = themes.find((x) => x.id === themePatch[1]) ?? themes[0];
+      return json(route, { theme: { ...base, ...body } });
+    }
     if (path === "/api/sync" && method === "POST") return json(route, { run_id: "run-1" });
     if (path === "/api/sync/run-1") return json(route, { run: { id: "run-1", status: "succeeded", ads_found: 10, ads_active: 8, error: null } });
     if (path === "/api/ads/save-previews") {

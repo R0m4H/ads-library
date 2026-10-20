@@ -516,6 +516,92 @@ test("ad page: every saved version is shown, labelled by shape", async ({ page }
   await expect(page.locator('img[src*="/preview?i=1"]')).toBeVisible();
 });
 
+test("themes: general themes and the ones limited to specific pages are listed separately", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/themes");
+  await settle(page);
+  const general = page.locator("section", { has: page.getByRole("heading", { name: "All pages", exact: true }) });
+  const specific = page.locator("section", { has: page.getByRole("heading", { name: "Specific pages", exact: true }) });
+  await expect(general.getByText("Deposits", { exact: true })).toBeVisible();
+  await expect(general.getByText("Student offers")).toHaveCount(0);
+  await expect(specific.getByText("Student offers")).toBeVisible();
+  await expect(specific.getByText("Only for: TBC", { exact: true })).toBeVisible();
+  // a theme can list several pages
+  await expect(specific.getByText(/Only for: .*Bank of Georgia Business.*, TBC/)).toBeVisible();
+  await expect(specific.getByText("Deposits", { exact: true })).toHaveCount(0);
+});
+
+test("themes: a new theme can be limited to several pages at once", async ({ page }) => {
+  await installMocks(page);
+  const posts: { name?: string; brand_ids?: string[] }[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "POST" && new URL(r.url()).pathname === "/api/themes") posts.push(JSON.parse(r.postData() ?? "{}"));
+  });
+  await page.goto("/themes");
+  await settle(page);
+  const form = page.locator("form", { has: page.getByRole("heading", { name: "Add a theme" }) });
+  await form.getByPlaceholder("e.g. Remittance offers").fill("Premium cards");
+  await form.getByPlaceholder("e.g. remittance, transfer, გზავნილი").fill("premium, infinite");
+  await form.getByRole("button", { name: "All pages" }).click();
+  await page.getByLabel("TBC", { exact: true }).check();
+  await page.getByLabel("Silk Bank").check();
+  await page.keyboard.press("Escape");
+  await expect(form.getByRole("button", { name: "2 pages" })).toBeVisible();
+  await form.getByRole("button", { name: "Add theme" }).click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts[0].name).toBe("Premium cards");
+  expect([...(posts[0].brand_ids ?? [])].sort()).toEqual(["brand-b", "brand-d"]);
+  await expect(page.locator("section", { has: page.getByRole("heading", { name: "Specific pages", exact: true }) }).getByText("Premium cards")).toBeVisible();
+});
+
+test("themes: editing a theme can change which pages it applies to", async ({ page }) => {
+  await installMocks(page);
+  const patches: { brand_ids?: string[] }[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "PATCH" && /\/api\/themes\/t3$/.test(r.url())) patches.push(JSON.parse(r.postData() ?? "{}"));
+  });
+  await page.goto("/themes");
+  await settle(page);
+  // "Deposits" is a general theme: limit it to TBC and Silk Bank.
+  const card = page.locator("div.rounded-xl", { hasText: "Deposits" }).filter({ has: page.getByRole("button", { name: "Edit" }) }).first();
+  await card.getByRole("button", { name: "Edit" }).click();
+  const editor = page.locator("div.rounded-xl", { has: page.getByRole("button", { name: "Save", exact: true }) }).first();
+  await editor.getByRole("button", { name: "All pages" }).click();
+  await page.getByLabel("TBC", { exact: true }).check();
+  await page.getByLabel("Silk Bank").check();
+  await page.keyboard.press("Escape");
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(() => patches.length).toBe(1);
+  expect([...(patches[0].brand_ids ?? [])].sort()).toEqual(["brand-b", "brand-d"]);
+});
+
+test("ads: an ad is only offered the general themes and the ones that list its page", async ({ page }) => {
+  await installMocks(page);
+  // ad-1 belongs to TBC: it may get TBC's themes, including the two-page one.
+  await page.goto("/ads/ad-1");
+  await settle(page);
+  await page.getByRole("button", { name: "+ Add theme…" }).click();
+  await expect(page.getByRole("option", { name: "Student offers" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Premium offers" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  // ad-0 belongs to Bank of Georgia: the two-page theme lists it, TBC's own theme does not.
+  await page.goto("/ads/ad-0");
+  await settle(page);
+  await page.getByRole("button", { name: "+ Add theme…" }).click();
+  await expect(page.getByRole("option", { name: "Premium offers" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Student offers" })).toHaveCount(0);
+});
+
+test("ad library: the theme filter lists every theme name once", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads");
+  await settle(page);
+  await page.getByRole("button", { name: "All themes" }).click();
+  await expect(page.getByLabel("Student offers")).toHaveCount(1);
+  await expect(page.getByLabel("Premium offers")).toHaveCount(1);
+  await expect(page.getByLabel("Deposits")).toHaveCount(1);
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

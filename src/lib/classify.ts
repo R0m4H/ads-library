@@ -16,6 +16,31 @@ export interface ThemeRuleLike {
   keywords: string[];
   priority?: number;
   excludes?: string[];
+  /** The pages this theme applies to; empty or missing means every page. */
+  brand_ids?: string[] | null;
+}
+
+type Scoped = { name: string; brand_ids?: string[] | null };
+const isSpecific = (r: Scoped) => !!r.brand_ids && r.brand_ids.length > 0;
+
+/**
+ * The themes that apply to one page: every general theme plus the themes that list this page. A theme that lists
+ * the page replaces a general theme of the same name, so a page can give "Cards" its own keywords. Order is kept.
+ */
+export function rulesForBrand<T extends Scoped>(rules: T[], brandId: string | null | undefined): T[] {
+  const mine = (r: T) => isSpecific(r) && !!brandId && r.brand_ids!.includes(brandId);
+  const ownNames = new Set(rules.filter(mine).map((r) => r.name));
+  return rules.filter((r) => (isSpecific(r) ? mine(r) : !ownNames.has(r.name)));
+}
+
+/** Themes that could apply where a theme with the given scope applies: general ones, and those sharing a chosen page. */
+export function rulesForScope<T extends Scoped>(rules: T[], brandIds: string[]): T[] {
+  return rules.filter((r) => !isSpecific(r) || r.brand_ids!.some((id) => brandIds.includes(id)));
+}
+
+/** Distinct theme names, in order of first appearance (a name can exist in several scopes). */
+export function uniqueNames(rules: { name: string }[]): string[] {
+  return [...new Set(rules.map((r) => r.name))];
 }
 
 export function matchThemes(text: string, rules: ThemeRuleLike[]): string[] {

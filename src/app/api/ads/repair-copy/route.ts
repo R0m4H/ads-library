@@ -21,7 +21,7 @@ export async function POST() {
   if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
-  const { data: rules, error: rulesError } = await supabase.from("theme_rules").select("name, keywords, priority, excludes");
+  const { data: rules, error: rulesError } = await supabase.from("theme_rules").select("name, keywords, priority, excludes, brand_ids");
   if (rulesError) return NextResponse.json({ error: rulesError.message }, { status: 500 });
 
   // 1. Find ads whose copy was saved as blank spaces. Only the small columns, so this stays cheap
@@ -49,7 +49,7 @@ export async function POST() {
   for (let i = 0; i < batch.length; i += chunk) {
     const { data: rows, error } = await supabase
       .from("ads")
-      .select("id, platform, headline, body, cta, theme_tags, tags_manual, raw")
+      .select("id, platform, headline, body, cta, theme_tags, tags_manual, brand_id, raw")
       .in("id", batch.slice(i, i + chunk));
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

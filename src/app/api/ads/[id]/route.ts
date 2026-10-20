@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canEdit, getCurrentUserRole } from "@/lib/role";
-import { classifyAd } from "@/lib/classify";
+import { classifyAd, rulesForBrand } from "@/lib/classify";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,12 +31,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } else if (body.tags_manual === false) {
     // Hand the ad back to the automatic rules: tag it from the current rules right now.
     const [{ data: ad, error: adError }, { data: rules, error: rulesError }] = await Promise.all([
-      supabase.from("ads").select("headline, body, cta").eq("id", id).single(),
-      supabase.from("theme_rules").select("name, keywords, priority, excludes"),
+      supabase.from("ads").select("headline, body, cta, brand_id").eq("id", id).single(),
+      supabase.from("theme_rules").select("name, keywords, priority, excludes, brand_ids"),
     ]);
     if (adError || !ad) return NextResponse.json({ error: adError?.message ?? "Ad not found" }, { status: 404 });
     if (rulesError) return NextResponse.json({ error: rulesError.message }, { status: 500 });
-    update = { theme_tags: classifyAd(ad.headline, ad.body, ad.cta, rules ?? []), tags_manual: false };
+    update = { theme_tags: classifyAd(ad.headline, ad.body, ad.cta, rulesForBrand(rules ?? [], ad.brand_id)), tags_manual: false };
   } else {
     return NextResponse.json({ error: "Send theme_tags (a list of names) or tags_manual: false." }, { status: 400 });
   }

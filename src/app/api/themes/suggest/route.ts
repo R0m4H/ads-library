@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/gemini/client";
 import type { AdMedia, Platform } from "@/lib/types";
 import { canEdit, getCurrentUserRole } from "@/lib/role";
+import { rulesForBrand, uniqueNames } from "@/lib/classify";
 
 // A couple of sequential Gemini calls can take a while; give it headroom.
 export const maxDuration = 60;
@@ -20,6 +21,7 @@ interface AdForSuggestion {
   body: string | null;
   cta: string | null;
   media: AdMedia[];
+  brand_id: string;
   brand: { name: string } | { name: string }[] | null;
 }
 
@@ -35,7 +37,7 @@ function brandName(brand: AdForSuggestion["brand"]): string {
   return Array.isArray(brand) ? (brand[0]?.name ?? "Unknown") : brand.name;
 }
 
-function buildPrompt(themeNames: string[], batch: AdForSuggestion[]): string {
+function buildPrompt(themesByBrand: Record<string, string[]>, batch: AdForSuggestion[]): string {
   const items = batch.map((ad) => ({
     id: ad.id,
     brand: brandName(ad.brand),
@@ -46,9 +48,12 @@ function buildPrompt(themeNames: string[], batch: AdForSuggestion[]): string {
 
   return `You are tagging ads into marketing themes for a competitive-intelligence tool.
 
-Existing themes: ${themeNames.length > 0 ? themeNames.join(", ") : "(none defined yet)"}
+Existing themes, per brand (a brand only has the themes listed for it):
+${Object.entries(themesByBrand)
+  .map(([brand, names]) => `- ${brand}: ${names.length > 0 ? names.join(", ") : "(none defined yet)"}`)
+  .join("\n")}
 
-For each ad below, suggest the single best-fit theme. If one of the existing themes clearly fits, use its EXACT name as written above. If none fit well, propose a short new theme name (2-4 words, Title Case) that could apply to this and similar ads.
+For each ad below, suggest the single best-fit theme. If one of the existing themes of THAT AD'S BRAND clearly fits, use its EXACT name as written above. If none fit well, propose a short new theme name (2-4 words, Title Case) that could apply to this and similar ads.
 
 Ads (JSON):
 ${JSON.stringify(items, null, 2)}
@@ -65,8 +70,7 @@ export async function POST() {
   if (!current) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canEdit(current.role)) return NextResponse.json({ error: "Editor access required" }, { status: 403 });
 
-  const { data: themeRules } = await supabase.from("theme_rules").select("name").order("name");
-  const themeNames = (themeRules ?? []).map((t) => t.name);
+  const { data: themeRules } = await supabase.from("theme_rules").select("name, brand_ids").order("name");
 
   const { count: totalUntagged } = await supabase
     .from("ads")
@@ -75,7 +79,7 @@ export async function POST() {
 
   const { data: ads, error } = await supabase
     .from("ads")
-    .select("id, platform, headline, body, cta, media, brand:brands(name)")
+    .select("id, platform, headline, body, cta, media, brand_id, brand:brands(name)")
     .eq("theme_tags", "{}")
     .order("last_seen_at", { ascending: false })
     .limit(MAX_ADS_PER_RUN);
@@ -94,6 +98,7 @@ export async function POST() {
     cta: string | null;
     media: AdMedia[];
     brandName: string;
+    brandId: string;
     suggestedTheme: string;
     isNewTheme: boolean;
     reason: string;
@@ -102,7 +107,10 @@ export async function POST() {
   try {
     for (let i = 0; i < adsTyped.length; i += BATCH_SIZE) {
       const batch = adsTyped.slice(i, i + BATCH_SIZE);
-      const prompt = buildPrompt(themeNames, batch);
+      // Each brand in this batch, with only the themes that apply to it (general ones plus its own).
+      const themesByBrand: Record<string, string[]> = {};
+      for (const ad of batch) themesByBrand[brandName(ad.brand)] = uniqueNames(rulesForBrand(themeRules ?? [], ad.brand_id));
+      const prompt = buildPrompt(themesByBrand, batch);
       const result = await generateJson<RawSuggestion[]>(prompt);
       for (const r of result) {
         const ad = batch.find((a) => a.id === r.id);
@@ -115,6 +123,7 @@ export async function POST() {
           cta: ad.cta,
           media: ad.media ?? [],
           brandName: brandName(ad.brand),
+          brandId: ad.brand_id,
           suggestedTheme: r.suggestedTheme,
           isNewTheme: !!r.isNewTheme,
           reason: r.reason ?? "",
