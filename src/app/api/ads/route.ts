@@ -35,7 +35,11 @@ export async function GET(req: Request) {
   let query = supabase
     .from("ads")
     .select("*, brand:brands(id, name, is_own, logo_url, category)", { count: "exact" })
+    // Active ads first, then the most recently seen. `id` last, so ads with the same timestamp (a whole sync
+    // shares one) keep a fixed order and never repeat or go missing between pages.
+    .order("is_active", { ascending: false })
     .order("last_seen_at", { ascending: false })
+    .order("id")
     .range(page * pageSize, page * pageSize + pageSize - 1);
 
   if (platform) query = query.eq("platform", platform);
