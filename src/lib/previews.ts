@@ -8,7 +8,8 @@ import type { AdMedia, PreviewEntry } from "./types";
 export const PREVIEW_WIDTH = 640;
 /** Most pictures kept per ad (catalog-style ads can carry 20 cards; the first ten are plenty). */
 export const MAX_ITEMS_PER_AD = 10;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+// Some ads ship a very large original (a handful are over 8 MB); only the small copy we make is kept.
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 /** Videos are saved in their smaller (SD) version, usually 1-2 MB; anything bigger than this is left on Meta. */
 export const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
 /**
@@ -63,6 +64,8 @@ export function needsWork(media: AdMedia[] | null | undefined, previews: Preview
     const entry = saved.get(i);
     const src = imageSourceOf(m);
     if (!entry && src && !isExpiredSignedUrl(src, nowMs)) return true;
+    // A video with no still image still gets its video saved (its entry then has no picture).
+    if (m.type === "video" && !entry && !src && !isExpiredSignedUrl(m.sd_url ?? m.url, nowMs)) return true;
     if (m.type === "video" && entry && !entry.video_key && !entry.video_skipped && !isExpiredSignedUrl(m.sd_url ?? m.url, nowMs)) return true;
   }
   return false;
@@ -166,6 +169,11 @@ export async function saveAd(
           continue;
         }
       }
+      entries.set(i, entry);
+      changed = true;
+    } else if (!entry && m.type === "video" && !src && !isExpiredSignedUrl(m.sd_url ?? m.url, nowMs)) {
+      // No still image to keep, but the video itself can still be saved: an entry with no picture.
+      entry = { i, key: "", w: 0, h: 0 };
       entries.set(i, entry);
       changed = true;
     }

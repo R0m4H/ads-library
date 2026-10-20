@@ -72,10 +72,10 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           )}
           {ad.media.map((m, i) => {
             const entry = entryFor(ad, i);
-            const savedStill = entry ? savedImageSrc(ad.id, i) : undefined;
+            const savedStill = entry?.key ? savedImageSrc(ad.id, i) : undefined;
             const savedVideo = entry?.video_key ? savedVideoSrc(ad.id, i) : undefined;
             // When an ad has several versions (for example a vertical and a square one), say which is which.
-            const caption = ad.media.length > 1 && entry && entry.w && entry.h ? SHAPE_LABEL[shapeOf(entry.w, entry.h)] : null;
+            const caption = ad.media.length > 1 && entry?.key && entry.w && entry.h ? SHAPE_LABEL[shapeOf(entry.w, entry.h)] : null;
 
             let body: React.ReactNode;
             if (m.type !== "video") {

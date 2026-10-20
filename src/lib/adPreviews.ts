@@ -23,7 +23,7 @@ export function entryFor(ad: { previews?: PreviewEntry[] | null }, i: number): P
  * cropping (many ads carry a vertical and a square version of the same creative). Ties go to the earlier one.
  */
 export function cardEntry(ad: { previews?: PreviewEntry[] | null }): PreviewEntry | undefined {
-  const entries = ad.previews ?? [];
+  const entries = (ad.previews ?? []).filter((e) => e.key); // an entry can exist for a video that has no still image
   let best: PreviewEntry | undefined;
   let bestScore = Infinity;
   for (const e of entries) {

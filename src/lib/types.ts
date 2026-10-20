@@ -28,6 +28,7 @@ export interface AdMedia {
 export interface PreviewEntry {
   /** Position in the ad's media list. */
   i: number;
+  /** R2 key of the saved picture; empty when only the video of an ad without a still image was saved. */
   key: string;
   w: number;
   h: number;

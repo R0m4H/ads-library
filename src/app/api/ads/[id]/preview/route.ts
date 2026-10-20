@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const { data } = await supabase.from("ads").select("previews").eq("id", id).single();
   const entry = ((data?.previews as PreviewEntry[] | null) ?? []).find((e) => e.i === index);
-  if (!entry) return NextResponse.json({ error: "No saved preview" }, { status: 404 });
+  if (!entry?.key) return NextResponse.json({ error: "No saved preview" }, { status: 404 });
 
   const object = await getObject(entry.key);
   if (!object) return NextResponse.json({ error: "No saved preview" }, { status: 404 });
