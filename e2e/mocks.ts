@@ -231,6 +231,18 @@ export async function installMocks(page: Page, opts: { pendingPreviews?: number 
       return json(route, { ...analysis, brands: chosen });
     }
     if (path === "/api/analysis/insights") return json(route, insights);
+    if (path === "/api/ads/themes") {
+      // The themes the chosen pages' ads carry, like the real endpoint.
+      const wanted = url.searchParams.getAll("brand_id");
+      const own = url.searchParams.get("own");
+      let ids = wanted;
+      if (own) {
+        const allowed = brands.filter((b) => b.is_own === (own === "own")).map((b) => b.id);
+        ids = wanted.length ? wanted.filter((id) => allowed.includes(id)) : allowed;
+      }
+      const list = ads.filter((a) => ids.includes(a.brand_id));
+      return json(route, { themes: [...new Set(list.flatMap((a) => a.theme_tags))], untagged: list.some((a) => a.theme_tags.length === 0) });
+    }
     m = path.match(/^\/api\/ads\/([^/]+)$/);
     if (m) return json(route, { ad: ads.find((a) => a.id === m![1]) ?? ads[0] });
     if (path === "/api/ads") {

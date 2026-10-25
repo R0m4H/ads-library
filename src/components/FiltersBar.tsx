@@ -38,11 +38,17 @@ export function FiltersBar({
   onChange,
   brands,
   themes,
+  availableThemes,
 }: {
   filters: AdFilters;
   onChange: (f: AdFilters) => void;
   brands: Brand[];
   themes: ThemeRule[];
+  /**
+   * What the chosen pages' ads actually carry. When set, the theme list shows only those themes (and
+   * "No theme" only if some of those ads have none). Null = no page chosen, so list every theme.
+   */
+  availableThemes: { themes: string[]; untagged: boolean } | null;
 }) {
   const { role } = useCurrentUser();
   // Your own brands first, then competitors.
@@ -51,7 +57,13 @@ export function FiltersBar({
     ...brands.filter((b) => !b.is_own).map((b) => ({ value: b.id, label: b.name, group: "Competitors" })),
   ];
   // A theme name can exist for several pages (and as a general theme); list each name once.
-  const themeOptions = [{ value: UNTAGGED_THEME, label: "No theme" }, ...uniqueNames(themes).map((name) => ({ value: name, label: name }))];
+  const inScope = availableThemes ? new Set(availableThemes.themes) : null;
+  const themeOptions = [
+    ...(!availableThemes || availableThemes.untagged ? [{ value: UNTAGGED_THEME, label: "No theme" }] : []),
+    ...uniqueNames(themes)
+      .filter((name) => !inScope || inScope.has(name))
+      .map((name) => ({ value: name, label: name })),
+  ];
 
   function set<K extends keyof AdFilters>(key: K, value: AdFilters[K]) {
     onChange({ ...filters, [key]: value });

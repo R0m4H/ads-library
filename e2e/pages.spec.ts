@@ -602,6 +602,71 @@ test("ad library: the theme filter lists every theme name once", async ({ page }
   await expect(page.getByLabel("Deposits")).toHaveCount(1);
 });
 
+test("ad library: choosing pages narrows the theme filter to the themes those pages have", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads");
+  await settle(page);
+
+  // No page chosen: every theme is listed.
+  await page.getByRole("button", { name: "All themes" }).click();
+  await expect(page.getByLabel("Mortgage")).toHaveCount(1);
+  await expect(page.getByLabel("Student offers")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+
+  // Silk Bank only has "Deposits" ads: nothing else (and no "No theme") is offered.
+  await page.getByRole("button", { name: "All brands" }).click();
+  await page.getByLabel("Silk Bank").check();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "All themes" }).click();
+  await expect(page.getByLabel("Deposits")).toHaveCount(1);
+  await expect(page.getByLabel("Mortgage")).toHaveCount(0);
+  await expect(page.getByLabel("Student offers")).toHaveCount(0);
+  await expect(page.getByLabel("No theme")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // Adding a second page adds the themes that page has.
+  await page.getByRole("button", { name: "Silk Bank" }).click();
+  await page.getByLabel("A Very Long Competitor").check();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "All themes" }).click();
+  await expect(page.getByLabel("Mortgage")).toHaveCount(1);
+  await expect(page.getByLabel("Deposits")).toHaveCount(1);
+  await expect(page.getByLabel("Student offers")).toHaveCount(0);
+
+  // A theme already picked that the pages no longer have is dropped.
+  await page.getByLabel("Mortgage").check();
+  await page.keyboard.press("Escape");
+  await expect(page.locator('button[aria-haspopup="true"]', { hasText: "Mortgage" })).toBeVisible();
+  await page.getByRole("button", { name: "2 brands" }).click();
+  await page.getByLabel("A Very Long Competitor").uncheck();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "All themes" })).toBeVisible();
+});
+
+test("ad library: clicking a theme on a card filters the list by it, without opening the ad", async ({ page }) => {
+  await installMocks(page);
+  const adRequests: URL[] = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    if (u.pathname === "/api/ads") adRequests.push(u);
+  });
+  await page.goto("/ads");
+  await settle(page);
+
+  await page.getByTitle("Show all ads with “Mortgage”").first().click();
+  await expect(page).toHaveURL(/\/ads\?theme=Mortgage/);
+  await expect(page.locator('button[aria-haspopup="true"]', { hasText: "Mortgage" })).toBeVisible();
+  await expect.poll(() => adRequests.at(-1)?.searchParams.getAll("theme")).toEqual(["Mortgage"]);
+});
+
+test("ad detail: a theme links to the Ad Library filtered by it", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads/ad-2");
+  await settle(page);
+  await page.getByRole("link", { name: "Mortgage" }).click();
+  await expect(page).toHaveURL(/\/ads\?theme=Mortgage/);
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

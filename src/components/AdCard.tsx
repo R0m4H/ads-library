@@ -18,6 +18,7 @@ export function AdCard({
   onDelete,
   themes = [],
   onTagsChange,
+  onThemeClick,
 }: {
   ad: AdWithBrand;
   onDelete?: (id: string) => void;
@@ -25,6 +26,8 @@ export function AdCard({
   themes?: ThemeRule[];
   /** Called with the ad's new theme list after an editor adds a theme here. */
   onTagsChange?: (id: string, tags: string[]) => void;
+  /** Called when a theme tag on the card is clicked, so the list can filter by it. */
+  onThemeClick?: (theme: string) => void;
 }) {
   const { role } = useCurrentUser();
   // Show the saved picture closest to square when we have several (many ads carry a vertical and a square
@@ -142,9 +145,20 @@ export function AdCard({
 
         <div className="mt-auto flex flex-wrap items-center gap-1 pt-2">
           {ad.theme_tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+            // The whole card is a link: swallow the click so the tag filters the list instead of opening the ad.
+            <button
+              key={tag}
+              type="button"
+              title={`Show all ads with “${tag}”`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onThemeClick?.(tag);
+              }}
+              className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 hover:bg-violet-100"
+            >
               {tag}
-            </span>
+            </button>
           ))}
           {ad.theme_tags.length > 2 && (
             <span

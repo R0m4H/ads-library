@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { AdWithBrand, Brand, ThemeRule } from "@/lib/types";
+import { UNTAGGED_THEME, type AdWithBrand, type Brand, type ThemeRule } from "@/lib/types";
 import { AdCard } from "@/components/AdCard";
 import { FiltersBar, type AdFilters } from "@/components/FiltersBar";
 import { SingleSelect } from "@/components/MultiSelect";
@@ -28,6 +28,7 @@ function AdsPageInner() {
   const [pageSize, setPageSize] = useState(initial.pageSize);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<AdFilters>(initial.filters);
+  const [fetchedThemes, setFetchedThemes] = useState<{ themes: string[]; untagged: boolean } | null>(null);
   const restoredScroll = useRef(false);
 
   useEffect(() => {
@@ -38,6 +39,40 @@ function AdsPageInner() {
       .then((r) => r.json())
       .then((json) => setThemes(json.themes ?? []));
   }, []);
+
+  // The theme filter only lists themes the chosen pages' ads have. Which pages count depends on the brand
+  // picks and on "Only yours / Only competitors"; with neither chosen, every theme is listed.
+  const scopeKey = useMemo(() => {
+    if (filters.brand_ids.length === 0 && !filters.own) return "";
+    const params = new URLSearchParams();
+    for (const id of filters.brand_ids) params.append("brand_id", id);
+    if (filters.own) params.set("own", filters.own);
+    return params.toString();
+  }, [filters.brand_ids, filters.own]);
+
+  useEffect(() => {
+    if (!scopeKey) return;
+    let stale = false;
+    fetch(`/api/ads/themes?${scopeKey}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (stale || !Array.isArray(json.themes)) return;
+        const found = { themes: json.themes as string[], untagged: Boolean(json.untagged) };
+        setFetchedThemes(found);
+        // A theme picked earlier that these pages don't have would only leave an empty list: drop it.
+        setFilters((f) => {
+          const kept = f.themes.filter((t) => t === UNTAGGED_THEME ? found.untagged : found.themes.includes(t));
+          return kept.length === f.themes.length ? f : { ...f, themes: kept };
+        });
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [scopeKey]);
+
+  // No page chosen: every theme is listed. Otherwise the last answer (kept while a new one loads).
+  const availableThemes = scopeKey ? fetchedThemes : null;
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -89,6 +124,12 @@ function AdsPageInner() {
     setFilters(f);
   }
 
+  // Clicking a theme on a card narrows the list to that theme (other filters stay).
+  function showTheme(theme: string) {
+    handleFilterChange({ ...filters, themes: [theme] });
+    window.scrollTo(0, 0);
+  }
+
   function handlePageSizeChange(size: number) {
     setPage(0);
     setPageSize(size);
@@ -116,7 +157,7 @@ function AdsPageInner() {
         </div>
       </div>
 
-      <FiltersBar filters={filters} onChange={handleFilterChange} brands={brands} themes={themes} />
+      <FiltersBar filters={filters} onChange={handleFilterChange} brands={brands} themes={themes} availableThemes={availableThemes} />
 
       {loading ? (
         <p className="text-sm text-neutral-400">Loading…</p>
@@ -135,6 +176,7 @@ function AdsPageInner() {
               key={ad.id}
               ad={ad}
               themes={themes}
+              onThemeClick={showTheme}
               onTagsChange={(id, tags) => setAds((prev) => prev.map((a) => (a.id === id ? { ...a, theme_tags: tags, tags_manual: true } : a)))}
               onDelete={(id) => {
                 setAds((prev) => prev.filter((a) => a.id !== id));

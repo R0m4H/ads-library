@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import type { ThemeRule } from "@/lib/types";
 import { canEdit } from "@/lib/role";
 import { rulesForBrand, uniqueNames } from "@/lib/classify";
 import { useCurrentUser } from "./RoleProvider";
 import { SingleSelect } from "./MultiSelect";
+
+/** The Ad Library filtered to one theme. */
+const themeHref = (tag: string) => `/ads?theme=${encodeURIComponent(tag)}`;
 
 export function ThemeTagEditor({
   adId,
@@ -86,9 +90,14 @@ export function ThemeTagEditor({
           <span className="text-xs text-neutral-400">No themes</span>
         ) : (
           tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700">
+            <Link
+              key={tag}
+              href={themeHref(tag)}
+              title={`Show all ads with “${tag}”`}
+              className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100"
+            >
               {tag}
-            </span>
+            </Link>
           ))
         )}
       </div>
@@ -103,8 +112,10 @@ export function ThemeTagEditor({
             key={tag}
             className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700"
           >
-            {tag}
-            <button onClick={() => remove(tag)} disabled={saving}>
+            <Link href={themeHref(tag)} title={`Show all ads with “${tag}”`} className="hover:underline">
+              {tag}
+            </Link>
+            <button onClick={() => remove(tag)} disabled={saving} aria-label={`Remove ${tag}`}>
               <X className="h-3 w-3" />
             </button>
           </span>
