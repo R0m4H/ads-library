@@ -690,6 +690,156 @@ test("ad detail: a theme links to the Ad Library filtered by it", async ({ page 
   await expect(page).toHaveURL(/\/ads\?theme=Mortgage/);
 });
 
+test("ad library: a page number past the end moves to the last page instead of a dead end", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads?page=9");
+  await settle(page);
+  await expect(page.getByText("Open a deposit")).toBeVisible();
+  await expect(page.getByText("No ads yet")).toHaveCount(0);
+  await expect(page).not.toHaveURL(/page=9/);
+});
+
+test("ad library: sorting sends the choice, and 'Active first' is the default", async ({ page }) => {
+  await installMocks(page);
+  const adRequests: URL[] = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    if (u.pathname === "/api/ads") adRequests.push(u);
+  });
+  await page.goto("/ads");
+  await settle(page);
+  expect(adRequests.at(-1)?.searchParams.get("sort")).toBeNull();
+  await page.getByRole("button", { name: "Active first", exact: true }).click();
+  await page.getByRole("option", { name: "Platform" }).click();
+  await expect.poll(() => adRequests.at(-1)?.searchParams.get("sort")).toBe("platform");
+  await expect(page).toHaveURL(/sort=platform/);
+  await page.getByRole("button", { name: "Platform", exact: true }).click();
+  await page.getByRole("option", { name: "Newest first" }).click();
+  await expect.poll(() => adRequests.at(-1)?.searchParams.get("sort")).toBe("newest");
+  await page.getByRole("button", { name: "Newest first", exact: true }).click();
+  await page.getByRole("option", { name: "Active first" }).click();
+  await expect.poll(() => adRequests.at(-1)?.searchParams.get("sort")).toBeNull();
+});
+
+test("ad library: when filters match nothing it says so and offers to clear them", async ({ page }) => {
+  await installMocks(page);
+  await page.route("**/api/ads?*", async (route) => {
+    const u = new URL(route.request().url());
+    if (u.searchParams.get("q") === "zzzz") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ads: [], total: 0, page: 0, pageSize: 24 }) });
+    return route.fallback();
+  });
+  await page.goto("/ads");
+  await settle(page);
+  await page.getByPlaceholder("Search headline, body, CTA…").fill("zzzz");
+  await expect(page.getByText("No ads match these filters.")).toBeVisible();
+  await expect(page.getByText("No ads yet")).toHaveCount(0);
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(page.getByPlaceholder("Search headline, body, CTA…")).toHaveValue("");
+  await expect(page.getByText("Open a deposit")).toBeVisible();
+});
+
+test("ad library: the filter buttons keep their size when something is chosen", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/ads");
+  await settle(page);
+  const search = page.getByPlaceholder("Search headline, body, CTA…");
+  const widths = async () => ({
+    brands: (await page.locator("div.rounded-xl").filter({ has: search }).locator("button[aria-haspopup]").first().boundingBox())?.width,
+    search: (await search.boundingBox())?.width,
+  });
+  const before = await widths();
+  await page.getByRole("button", { name: "All brands" }).click();
+  await page.getByLabel("A Very Long Competitor").check();
+  await page.keyboard.press("Escape");
+  const after = await widths();
+  expect(after.brands).toBe(before.brands);
+  expect(after.search).toBe(before.search);
+});
+
+test("analysis: 'total seen' is only shown when it differs from 'active'", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/analysis");
+  await settle(page);
+  await page.getByRole("button", { name: /^TBC$/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(page.getByText("Ads by theme")).toBeVisible();
+  await expect(page.getByText("total seen")).toHaveCount(0);
+  await page.getByLabel("Active ads only").uncheck();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(page.getByText("total seen")).toBeVisible();
+});
+
+test("analysis: the theme table downloads as a CSV file", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/analysis");
+  await settle(page);
+  for (const label of [/Bank of Georgia Business/, /^TBC$/]) await page.getByRole("button", { name: label }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(page.getByText("Ads by theme")).toBeVisible();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
+  expect(download.suggestedFilename()).toMatch(/^theme-comparison-all-\d{4}-\d{2}-\d{2}\.csv$/);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const c of stream) chunks.push(c as Buffer);
+  const text = Buffer.concat(chunks).toString("utf8");
+  expect(text.charCodeAt(0)).toBe(0xfeff); // Excel reads Georgian text correctly with this marker
+  expect(text).toContain("Theme,");
+  expect(text).toContain("Difference,Ahead");
+  expect(text).toContain("Deposits,6,2,4,");
+  expect(text).toContain("სამომხმარებლო სესხი");
+});
+
+test("analysis: printing hides the menus and controls (Save as PDF)", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/analysis");
+  await settle(page);
+  await page.getByRole("button", { name: /^TBC$/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(page.getByText("Ads by theme")).toBeVisible();
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByRole("button", { name: "Generate comparison" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Download CSV" })).toBeHidden();
+  await expect(page.getByRole("link", { name: "Ad Library" })).toBeHidden();
+  await expect(page.getByText("Ads by theme")).toBeVisible();
+});
+
+test("analysis: a busy AI service shows a plain message and 'Try again' works", async ({ page }) => {
+  await installMocks(page);
+  let calls = 0;
+  await page.route("**/api/analysis/insights", async (route) => {
+    calls += 1;
+    if (calls === 1) {
+      return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "The AI service is busy right now. Try again in a minute.", retryable: true }) });
+    }
+    return route.fallback();
+  });
+  await page.goto("/analysis");
+  await settle(page);
+  await page.getByRole("button", { name: /^TBC$/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await page.getByRole("button", { name: "Generate AI insights" }).click();
+  await expect(page.getByText("The AI service is busy right now. Try again in a minute.")).toBeVisible();
+  await expect(page.getByText("{")).toHaveCount(0);
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByText("30-day action checklist")).toBeVisible();
+  await expect(page.getByText("The AI service is busy")).toHaveCount(0);
+});
+
+test("analysis: AI insights show progress and can be cancelled", async ({ page }) => {
+  await installMocks(page);
+  await page.route("**/api/analysis/insights", () => new Promise(() => {})); // never answers
+  await page.goto("/analysis");
+  await settle(page);
+  await page.getByRole("button", { name: /^TBC$/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await page.getByRole("button", { name: "Generate AI insights" }).click();
+  await expect(page.getByRole("status")).toContainText("Asking Gemini");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Generate AI insights" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+});
+
 test.describe("login (signed out)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

@@ -36,3 +36,19 @@ select {
 select:disabled {
   cursor: not-allowed;
 }
+
+/* Printing (the Analysis page's "Save as PDF"): keep colours, and don't split a card across two pages. */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: #fff;
+  }
+  main > div > div {
+    break-inside: avoid;
+  }
+  table,
+  canvas {
+    break-inside: avoid;
+  }
+}

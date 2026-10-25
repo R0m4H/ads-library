@@ -41,7 +41,7 @@ export function Nav({ email }: { email: string | null }) {
   });
 
   return (
-    <header className="bg-gradient-to-r from-navy to-navy-light">
+    <header className="bg-gradient-to-r from-navy to-navy-light print:hidden">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-8 gap-y-2">
           <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-white">

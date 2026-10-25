@@ -8,6 +8,12 @@ import { FiltersBar, type AdFilters } from "@/components/FiltersBar";
 import { SingleSelect } from "@/components/MultiSelect";
 import { listUrlFor, readListState, saveListUrl, saveScroll, takeScroll } from "@/lib/adsListState";
 
+const SORT_OPTIONS = [
+  { value: "", label: "Active first" },
+  { value: "newest", label: "Newest first" },
+  { value: "platform", label: "Platform" },
+];
+
 export default function AdsPage() {
   return (
     <Suspense fallback={<p className="text-sm text-neutral-400">Loading…</p>}>
@@ -84,6 +90,7 @@ function AdsPageInner() {
     if (filters.active_only) params.set("active_only", "true");
     if (filters.missing_copy) params.set("missing_copy", "true");
     if (filters.own) params.set("own", filters.own);
+    if (filters.sort) params.set("sort", filters.sort);
     params.set("page", String(page));
     params.set("page_size", String(pageSize));
     return params.toString();
@@ -105,6 +112,9 @@ function AdsPageInner() {
         .then((json) => {
           setAds(json.ads ?? []);
           setTotal(json.total ?? 0);
+          // A page number past the end (an old link, or filters that now match fewer ads): go to the
+          // last page that exists instead of showing an empty one.
+          if (json.total > 0 && json.pageSize > 0 && json.page * json.pageSize >= json.total) setPage(Math.ceil(json.total / json.pageSize) - 1);
         })
         .finally(() => setLoading(false));
     }, 250); // debounce free-text search
@@ -136,6 +146,11 @@ function AdsPageInner() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const filtersActive =
+    Boolean(filters.q || filters.platform || filters.own || filters.active_only || filters.missing_copy) ||
+    filters.brand_ids.length > 0 ||
+    filters.themes.length > 0 ||
+    filters.ad_formats.length > 0;
 
   return (
     <div className="space-y-6">
@@ -144,7 +159,19 @@ function AdsPageInner() {
           <h1 className="text-xl font-semibold">Ad Library</h1>
           <p className="text-sm text-neutral-500">{total} ad{total === 1 ? "" : "s"} matching your filters.</p>
         </div>
-        <div className="flex items-center gap-2 whitespace-nowrap text-sm text-neutral-500">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap text-sm text-neutral-500">
+        <div className="flex items-center gap-2">
+          Sort
+          <SingleSelect
+            compact
+            panelWidth={176}
+            highlightChanged={false}
+            options={SORT_OPTIONS}
+            value={filters.sort}
+            onChange={(v) => handleFilterChange({ ...filters, sort: v as AdFilters["sort"] })}
+          />
+        </div>
+        <div className="flex items-center gap-2">
           Per page
           <SingleSelect
             compact
@@ -155,6 +182,7 @@ function AdsPageInner() {
             onChange={(v) => handlePageSizeChange(Number(v))}
           />
         </div>
+        </div>
       </div>
 
       <FiltersBar filters={filters} onChange={handleFilterChange} brands={brands} themes={themes} availableThemes={availableThemes} />
@@ -163,7 +191,19 @@ function AdsPageInner() {
         <p className="text-sm text-neutral-400">Loading…</p>
       ) : ads.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 p-12 text-center text-sm text-neutral-500">
-          No ads yet. Add a brand and hit Sync from the Brands page to pull in ads.
+          {filtersActive ? (
+            <>
+              <p>No ads match these filters.</p>
+              <button
+                onClick={() => handleFilterChange({ ...filters, q: "", platform: "", brand_ids: [], themes: [], ad_formats: [], active_only: false, missing_copy: false, own: "" })}
+                className="mt-3 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                Clear filters
+              </button>
+            </>
+          ) : (
+            "No ads yet. Add a brand and hit Sync from the Brands page to pull in ads."
+          )}
         </div>
       ) : (
         <div

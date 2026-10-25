@@ -60,6 +60,7 @@ export function takeScroll(url: string): number | null {
 /** Filters, page and page size from the page address (the same names the API takes). */
 export function readListState(params: URLSearchParams): { filters: AdFilters; page: number; pageSize: number } {
   const own = params.get("own");
+  const sort = params.get("sort");
   const platform = params.get("platform");
   const size = Number(params.get("page_size"));
   const page = Number(params.get("page"));
@@ -73,6 +74,7 @@ export function readListState(params: URLSearchParams): { filters: AdFilters; pa
       active_only: params.get("active_only") === "true",
       missing_copy: params.get("missing_copy") === "true",
       own: own === "own" || own === "competitors" ? own : "",
+      sort: sort === "newest" || sort === "platform" ? sort : "",
     },
     page: Number.isInteger(page) && page > 0 ? page : 0,
     pageSize: PAGE_SIZES.includes(size) ? size : 24,

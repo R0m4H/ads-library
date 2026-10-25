@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { generateJson } from "@/lib/gemini/client";
+import { GeminiError, generateJson } from "@/lib/gemini/client";
+
+// Retries and the backup models need more than the default time.
+export const maxDuration = 60;
 
 // Bounded per brand so the prompt (and free-tier token usage) stays small —
 // the top handful of repeated headlines carries the signal anyway.
@@ -94,7 +97,9 @@ ${
     const analysis = await generateJson<AIAnalysis>(prompt);
     return NextResponse.json(analysis);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to generate insights";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // The message is already plain language (the raw Gemini reply is only in the server log).
+    if (e instanceof GeminiError) return NextResponse.json({ error: e.message, retryable: e.retryable }, { status: e.retryable ? 503 : 502 });
+    console.error("[insights] failed:", e);
+    return NextResponse.json({ error: "Couldn't generate insights. Try again.", retryable: true }, { status: 500 });
   }
 }

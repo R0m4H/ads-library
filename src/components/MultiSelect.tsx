@@ -26,6 +26,7 @@ export function MultiSelect({
   disabled = false,
   panelWidth = 288,
   highlightChanged = true,
+  triggerClassName,
 }: {
   /** Trigger text when nothing is ticked, e.g. "All brands". */
   allLabel: string;
@@ -43,6 +44,8 @@ export function MultiSelect({
   panelWidth?: number;
   /** In single mode: outline the button when something other than the first option is chosen. */
   highlightChanged?: boolean;
+  /** Extra classes for the button, e.g. a fixed width so it doesn't resize when the choice changes. */
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -131,7 +134,8 @@ export function MultiSelect({
         className={clsx(
           "relative flex max-w-full min-w-0 items-center rounded-md border bg-white text-left focus:outline-none focus-visible:border-bog disabled:cursor-not-allowed disabled:opacity-50",
           compact ? "py-1 pl-2 pr-7 text-xs" : "py-2 pl-3 pr-9 text-sm",
-          isActive ? "border-bog text-neutral-900" : "border-neutral-300 text-neutral-900"
+          isActive ? "border-bog text-neutral-900" : "border-neutral-300 text-neutral-900",
+          triggerClassName
         )}
       >
         <span className="min-w-0 max-w-[16rem] truncate">{summary}</span>
@@ -235,6 +239,7 @@ export function SingleSelect({
   disabled,
   panelWidth,
   highlightChanged,
+  triggerClassName,
 }: {
   options: MultiSelectOption[];
   value: string;
@@ -249,6 +254,7 @@ export function SingleSelect({
   panelWidth?: number;
   /** Outline the button when something other than the first option is chosen (default true). */
   highlightChanged?: boolean;
+  triggerClassName?: string;
 }) {
   return (
     <MultiSelect
@@ -262,6 +268,7 @@ export function SingleSelect({
       disabled={disabled}
       panelWidth={panelWidth}
       highlightChanged={placeholder ? false : highlightChanged}
+      triggerClassName={triggerClassName}
     />
   );
 }

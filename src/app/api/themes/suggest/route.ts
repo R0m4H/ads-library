@@ -111,7 +111,7 @@ export async function POST() {
       const themesByBrand: Record<string, string[]> = {};
       for (const ad of batch) themesByBrand[brandName(ad.brand)] = uniqueNames(rulesForBrand(themeRules ?? [], ad.brand_id));
       const prompt = buildPrompt(themesByBrand, batch);
-      const result = await generateJson<RawSuggestion[]>(prompt);
+      const result = await generateJson<RawSuggestion[]>(prompt, { budgetMs: 20_000 }); // several batches share one 60 s limit
       for (const r of result) {
         const ad = batch.find((a) => a.id === r.id);
         if (!ad || !r.suggestedTheme) continue;

@@ -249,7 +249,11 @@ export async function installMocks(page: Page, opts: { pendingPreviews?: number 
       const brandIds = url.searchParams.getAll("brand_id");
       const list = brandIds.length ? ads.filter((a) => brandIds.includes(a.brand_id)) : ads;
       const active = url.searchParams.get("active_only") === "true" ? list.filter((a) => a.is_active) : list;
-      return json(route, { ads: active, total: active.length, page: 0, pageSize: 24 });
+      // Like the real endpoint: a page past the end has no ads but still reports the real total.
+      const pageNumber = Number(url.searchParams.get("page") ?? "0") || 0;
+      const pageSize = Number(url.searchParams.get("page_size") ?? "24") || 24;
+      const slice = active.slice(pageNumber * pageSize, pageNumber * pageSize + pageSize);
+      return json(route, { ads: slice, total: active.length, page: pageNumber, pageSize });
     }
     return json(route, {});
   });

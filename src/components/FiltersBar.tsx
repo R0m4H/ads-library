@@ -18,6 +18,8 @@ export interface AdFilters {
   active_only: boolean;
   missing_copy: boolean;
   own: "" | "own" | "competitors";
+  /** "" = active ads first, then most recently seen. */
+  sort: "" | "newest" | "platform";
 }
 
 const PLATFORM_FILTERS: { value: Platform | ""; label: string }[] = [
@@ -26,6 +28,10 @@ const PLATFORM_FILTERS: { value: Platform | ""; label: string }[] = [
   { value: "google", label: "Google" },
   { value: "linkedin", label: "LinkedIn" },
 ];
+
+// Fixed widths, so choosing something (a longer name, "3 brands") doesn't resize the button and push
+// the rest of the row around. Longer text is cut with "…".
+const FILTER_WIDTH = "w-48";
 
 const OWN_OPTIONS = [
   { value: "", label: "Yours + competitors" },
@@ -103,6 +109,7 @@ export function FiltersBar({
           options={brandOptions}
           value={filters.brand_ids}
           onChange={(v) => set("brand_ids", v)}
+          triggerClassName={FILTER_WIDTH}
         />
 
         <MultiSelect
@@ -111,6 +118,7 @@ export function FiltersBar({
           options={themeOptions}
           value={filters.themes}
           onChange={(v) => set("themes", v)}
+          triggerClassName={FILTER_WIDTH}
         />
 
         <MultiSelect
@@ -119,12 +127,14 @@ export function FiltersBar({
           options={AD_FORMAT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))}
           value={filters.ad_formats}
           onChange={(v) => set("ad_formats", v)}
+          triggerClassName="w-40"
         />
 
         <SingleSelect
           options={OWN_OPTIONS}
           value={filters.own}
           onChange={(v) => set("own", v as AdFilters["own"])}
+          triggerClassName="w-52"
         />
 
         <label className="flex items-center gap-2 text-sm text-neutral-600">
