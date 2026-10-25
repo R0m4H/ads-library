@@ -328,19 +328,42 @@ export default function AnalysisPage() {
                       {r.brand?.name ?? "Unknown"}
                     </th>
                   ))}
+                  {rows.length > 1 && (
+                    <th className="px-4 py-2 text-right" title="Most ads minus fewest ads among the selected brands">
+                      Difference
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {[...visibleThemes, "Untagged"].map((theme) => (
-                  <tr key={theme} className="border-b border-neutral-100 last:border-0">
-                    <td className="px-4 py-2 font-medium text-neutral-700">{theme}</td>
-                    {rows.map((r, i) => (
-                      <td key={r.brand?.id ?? i} className="px-4 py-2 text-right">
-                        {theme === "Untagged" ? r.untagged : (r.themeCounts[theme] ?? 0)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {[...visibleThemes, "Untagged"].map((theme) => {
+                  const counts = rows.map((r) => (theme === "Untagged" ? r.untagged : (r.themeCounts[theme] ?? 0)));
+                  const most = Math.max(...counts);
+                  const diff = most - Math.min(...counts);
+                  // Who has the most, so the number says who is ahead (nobody, when it is a tie).
+                  const leaders = rows.filter((_, i) => counts[i] === most);
+                  const leader = diff > 0 && leaders.length === 1 ? (leaders[0].brand?.name ?? "Unknown") : null;
+                  return (
+                    <tr key={theme} className="border-b border-neutral-100 last:border-0">
+                      <td className="px-4 py-2 font-medium text-neutral-700">{theme}</td>
+                      {counts.map((n, i) => (
+                        <td key={rows[i].brand?.id ?? i} className="px-4 py-2 text-right">
+                          {n}
+                        </td>
+                      ))}
+                      {rows.length > 1 && (
+                        <td className="px-4 py-2 text-right">
+                          <span className="block font-medium text-neutral-900">{diff}</span>
+                          {leader && (
+                            <span className="ml-auto block max-w-[10rem] truncate text-xs text-neutral-400" title={`${leader} has the most`}>
+                              {leader}
+                            </span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

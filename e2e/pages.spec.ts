@@ -281,6 +281,29 @@ test("team: inviting an outside address lists it as waiting to sign up", async (
   await expect(page.getByText("will join as editor")).toHaveCount(2);
 });
 
+test("analysis: the theme table shows the difference between brands, and who is ahead", async ({ page }) => {
+  await installMocks(page);
+  await page.goto("/analysis");
+  await settle(page);
+
+  // One brand has nothing to be compared with.
+  await page.getByRole("button", { name: /Bank of Georgia Business/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  const table = page.locator("table").first();
+  await expect(table.getByText("Deposits")).toBeVisible();
+  await expect(table.getByRole("columnheader", { name: "Difference" })).toHaveCount(0);
+
+  // Two brands: Deposits is 6 vs 2 (gap 4, the first brand ahead); Untagged is 4 vs 5 (gap 1, TBC ahead).
+  await page.getByRole("button", { name: /^TBC$/ }).first().click();
+  await page.getByRole("button", { name: "Generate comparison" }).click();
+  await expect(table.getByRole("columnheader", { name: "Difference" })).toBeVisible();
+  const deposits = table.getByRole("row", { name: /^Deposits/ });
+  await expect(deposits.getByRole("cell").last()).toContainText(/^4/);
+  await expect(deposits.getByRole("cell").last()).toContainText("Bank of Georgia");
+  const untagged = table.getByRole("row", { name: /^Untagged/ });
+  await expect(untagged.getByRole("cell").last()).toContainText(/^1\s*TBC/);
+});
+
 test("analysis: a theme is hidden only when every selected brand has 0 ads in it", async ({ page }) => {
   await installMocks(page);
   await page.goto("/analysis");
