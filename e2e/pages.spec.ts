@@ -598,6 +598,28 @@ test("themes: editing a theme can change which pages it applies to", async ({ pa
   expect([...(patches[0].brand_ids ?? [])].sort()).toEqual(["brand-b", "brand-d"]);
 });
 
+test("themes: a general theme can exclude a theme that belongs to one page", async ({ page }) => {
+  await installMocks(page);
+  const patches: { excludes?: string[] }[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "PATCH" && /\/api\/themes\/t3$/.test(r.url())) patches.push(JSON.parse(r.postData() ?? "{}"));
+  });
+  await page.goto("/themes");
+  await settle(page);
+
+  // The add form offers every theme, including "Student offers" which only TBC has.
+  await expect(page.getByRole("button", { name: "Student offers", exact: true }).first()).toBeVisible();
+
+  // "Deposits" is general; "Student offers" is TBC-only. It can still be excluded.
+  const card = page.locator("div.rounded-xl", { hasText: "Deposits" }).filter({ has: page.getByRole("button", { name: "Edit" }) }).first();
+  await card.getByRole("button", { name: "Edit" }).click();
+  const editor = page.locator("div.rounded-xl", { has: page.getByRole("button", { name: "Save", exact: true }) }).first();
+  await editor.getByRole("button", { name: "Student offers", exact: true }).click();
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(() => patches.length).toBe(1);
+  expect(patches[0].excludes).toEqual(["Student offers"]);
+});
+
 test("ads: an ad is only offered the general themes and the ones that list its page", async ({ page }) => {
   await installMocks(page);
   // ad-1 belongs to TBC: it may get TBC's themes, including the two-page one.

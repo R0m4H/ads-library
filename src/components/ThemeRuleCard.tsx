@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import clsx from "clsx";
 import type { Brand, ThemeRule } from "@/lib/types";
-import { rulesForScope, uniqueNames } from "@/lib/classify";
+import { uniqueNames } from "@/lib/classify";
 import { MultiSelect } from "./MultiSelect";
 
 function parseKeywords(input: string): string[] {
@@ -77,8 +77,9 @@ export function ThemeRuleCard({
     if (res.ok) onDeleted(theme.id);
   }
 
-  // Excludes can name any theme that could apply where this one does (general ones, plus those of the chosen pages).
-  const otherThemes = uniqueNames(rulesForScope(allThemes, scope).filter((t) => t.id !== theme.id && t.name !== name.trim())).map((n) => ({
+  // Excludes can name any other theme, including ones that belong to a single page: a general theme
+  // can drop, say, a SOLO-only theme on the ads where both match.
+  const otherThemes = uniqueNames(allThemes.filter((t) => t.id !== theme.id && t.name !== name.trim())).map((n) => ({
     id: n,
     name: n,
   }));

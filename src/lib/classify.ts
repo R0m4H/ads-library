@@ -33,11 +33,6 @@ export function rulesForBrand<T extends Scoped>(rules: T[], brandId: string | nu
   return rules.filter((r) => (isSpecific(r) ? mine(r) : !ownNames.has(r.name)));
 }
 
-/** Themes that could apply where a theme with the given scope applies: general ones, and those sharing a chosen page. */
-export function rulesForScope<T extends Scoped>(rules: T[], brandIds: string[]): T[] {
-  return rules.filter((r) => !isSpecific(r) || r.brand_ids!.some((id) => brandIds.includes(id)));
-}
-
 /** Distinct theme names, in order of first appearance (a name can exist in several scopes). */
 export function uniqueNames(rules: { name: string }[]): string[] {
   return [...new Set(rules.map((r) => r.name))];

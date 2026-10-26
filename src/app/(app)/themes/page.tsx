@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PlayCircle } from "lucide-react";
 import clsx from "clsx";
 import type { AdMedia, Brand, Platform, ThemeRule } from "@/lib/types";
-import { rulesForBrand, rulesForScope, uniqueNames } from "@/lib/classify";
+import { rulesForBrand, uniqueNames } from "@/lib/classify";
 import { ThemeRuleCard, pageOptions } from "@/components/ThemeRuleCard";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { RoleGate } from "@/components/RoleGate";
@@ -389,13 +389,13 @@ export default function ThemesPage() {
             className="w-24 rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </div>
-        {uniqueNames(rulesForScope(themes, newScope)).length > 0 && (
+        {uniqueNames(themes).length > 0 && (
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-600">
               Excludes <span className="font-normal text-neutral-400">(if this theme matches, don&apos;t also tag these)</span>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {uniqueNames(rulesForScope(themes, newScope)).map((name) => (
+              {uniqueNames(themes).map((name) => (
                 <button
                   key={name}
                   type="button"
